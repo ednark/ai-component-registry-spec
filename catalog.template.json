@@ -1,0 +1,26 @@
+{
+  "name": "{name}",
+  "description": "{description}",
+  "version": "1.0.0",
+  "designSystem": {
+    "name": "{designSystemName}",
+    "version": "{designSystemVersion}",
+    "url": "{designSystemUrl}"
+  },
+  "totals": {
+    "components": "{count}",
+    "variants": "{variantCount}",
+    "sections": "{sectionCount}"
+  },
+  "conventions": {
+    "selfContained": "Every component is a single .html file with inline CSS/JS and embedded adaptation metadata.",
+    "tiles": "{tileDir}/<component>/<variant>.html — one variant per file, with embedded <script id=\"{agentMetaId}\"> JSON block",
+    "adaptationMetadata": "Each tile contains <script type=\"application/json\" id=\"{agentMetaId}\"> with full agent guidance"
+  },
+  "componentSchema": {
+    "_comment": "Fields are defined in the registry's registry.config.json. See _base/tile-format.md for the spec.",
+    "facets": "{facets}",
+    "additionalFields": "{additionalFields}"
+  },
+  "sections": []
+}

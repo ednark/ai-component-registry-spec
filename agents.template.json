@@ -1,0 +1,21 @@
+{
+  "name": "{name}",
+  "description": "{description}",
+  "repo": "{repo}",
+  "base": "{base}",
+  "count": {count},
+  "facetsUrl": "{base}/{tileDir}/facets.json",
+  "index": "{base}/{tileDir}/components.index.json",
+  "indexSchemaVersion": {indexSchemaVersion},
+  "tileFetchPattern": "{base}/{tileDir}/{file}",
+  "facets": {facets},
+  "adaptationDetail": "embedded in each tile as <script type=\"application/json\" id=\"{agentMetaId}\">",
+  "flow": [
+    "GET facets.json",
+    "GET components.index.json",
+    "filter by facet in code",
+    "GET tile by file",
+    "read {agentMetaId} block"
+  ],
+  "updated": "1.0.0"
+}

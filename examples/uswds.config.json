@@ -1,0 +1,41 @@
+{
+  "name": "uswds-ai-components",
+  "description": "USWDS component registry for AI coding agents building government websites.",
+  "designSystem": {
+    "name": "U.S. Web Design System",
+    "version": "3.13.0",
+    "url": "https://designsystem.digital.gov"
+  },
+  "agentMetaId": "uswds-agent-meta",
+  "tileDir": "infinite",
+  "facets": [
+    "section",
+    "uswdsComponentType",
+    "requiresJs",
+    "interaction",
+    "a11y",
+    "govCompliance",
+    "variant"
+  ],
+  "indexSchemaVersion": 1,
+  "repo": "https://github.com/ednark/uswds-ai-components",
+  "base": "https://raw.githubusercontent.com/ednark/uswds-ai-components/main",
+  "additionalFields": [
+    "useWhen",
+    "avoidWhen",
+    "agentPrompt",
+    "editableAreas",
+    "preserveElements",
+    "knownLimitations",
+    "variants",
+    "settings",
+    "relatedComponents",
+    "tokenOverrides"
+  ],
+  "govCompliance": [
+    "Section 508",
+    "WCAG 2.1 AA",
+    "21st Century IDEA"
+  ],
+  "updated": "1.0.0"
+}

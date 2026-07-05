@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Registry Configuration",
+  "description": "Declares how a component registry extends the base spec.",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "agentMetaId",
+    "tileDir",
+    "facets",
+    "indexSchemaVersion",
+    "repo",
+    "base"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Registry name (e.g., 'uswds-ai-components')"
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line description of the registry"
+    },
+    "designSystem": {
+      "type": "object",
+      "description": "The design system this registry covers",
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "url": { "type": "string" }
+      }
+    },
+    "agentMetaId": {
+      "type": "string",
+      "description": "The HTML id of the embedded metadata block (e.g., 'uswds-agent-meta')"
+    },
+    "tileDir": {
+      "type": "string",
+      "description": "Directory containing component tiles (e.g., 'infinite')"
+    },
+    "facets": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of facet field names to aggregate in facets.json"
+    },
+    "indexSchemaVersion": {
+      "type": "integer",
+      "description": "Schema version for components.index.json"
+    },
+    "taxonomyVersion": {
+      "type": "integer",
+      "description": "Optional taxonomy version for the facet vocabulary"
+    },
+    "repo": {
+      "type": "string",
+      "description": "GitHub repo URL"
+    },
+    "base": {
+      "type": "string",
+      "description": "Base URL for raw file fetching (raw.githubusercontent.com/...)"
+    },
+    "additionalFields": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Non-standard fields included in each tile's metadata"
+    },
+    "govCompliance": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Government compliance standards this registry supports"
+    },
+    "updated": {
+      "type": "string",
+      "description": "Version string for the registry"
+    }
+  }
+}

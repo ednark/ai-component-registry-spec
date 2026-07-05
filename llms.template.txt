@@ -1,0 +1,29 @@
+# {name}
+
+> {description}
+> Every component is one file: inline CSS + JS, no frameworks, works offline by double-click.
+
+Home (browse, star, contribute): {repo}
+
+## For agents (three lean surfaces)
+
+1. Filter vocab (tiny): {base}/{tileDir}/facets.json
+   The facets you can filter on and their values/counts. Fetch this first to learn the schema.
+2. Discovery index (lean): {base}/{tileDir}/components.index.json
+   One record per component: title, description, file path, and discovery facets.
+   No heavy prose, so it stays small. Filter it with CODE (do not paste the whole
+   file into a model context). Each record has `file` (e.g. `button/default.html`).
+3. Component source: {base}/{tileDir}/<file>
+   GET the chosen tile for the complete, copy-pasteable component. Adaptation detail
+   (useWhen, avoidWhen, agentPrompt, editableAreas, preserveElements, knownLimitations) travels
+   INSIDE the tile as <script type="application/json" id="{agentMetaId}">, so one fetch
+   returns code + instructions together.
+
+- Machine manifest: {base}/agents.json
+- Protocol spec: {base}/_base/protocol.md
+
+## Use
+
+Fetch facets.json, then the lean components.index.json, filter by facet in code
+to a shortlist, then GET only the chosen tile URL. Read its embedded {agentMetaId}
+block for adaptation guidance. No build step, no dependencies.

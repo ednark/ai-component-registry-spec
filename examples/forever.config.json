@@ -1,0 +1,38 @@
+{
+  "name": "forever-ai-components",
+  "description": "Zero-dependency single-file animated web components for AI coding agents.",
+  "designSystem": {
+    "name": "Artistic (generic)",
+    "version": "1.0.0",
+    "url": "https://forever-components.vercel.app/infinite/"
+  },
+  "agentMetaId": "forever-agent-meta",
+  "tileDir": "infinite",
+  "facets": [
+    "role",
+    "technique",
+    "style",
+    "motion",
+    "intensity",
+    "interaction",
+    "perfTier",
+    "scheme",
+    "deps",
+    "useCases",
+    "mood",
+    "a11y"
+  ],
+  "indexSchemaVersion": 3,
+  "taxonomyVersion": 1,
+  "repo": "https://github.com/isas1/forever-ai-components",
+  "base": "https://raw.githubusercontent.com/isas1/forever-ai-components/main",
+  "additionalFields": [
+    "useWhen",
+    "avoidWhen",
+    "agentPrompt",
+    "editableAreas",
+    "preserveElements",
+    "knownLimitations"
+  ],
+  "updated": "1.0.0"
+}
