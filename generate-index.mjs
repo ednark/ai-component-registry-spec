@@ -9,6 +9,10 @@
  *   - {tileDir}/components.index.json
  *   - {tileDir}/facets.json
  *
+ * Supports both metadata schema v1 (flat) and v2 (categorized):
+ *   - v1: all fields at top level (legacy)
+ *   - v2: fields organized into discovery/selection/instruction/coordination/constraints
+ *
  * Usage:
  *   node _base/generate-index.mjs                    # reads registry.config.json from cwd
  *   node _base/generate-index.mjs /path/to/config    # reads config from given path
@@ -43,6 +47,7 @@ const {
   tileDir = 'infinite',
   facets: configuredFacets = [],
   indexSchemaVersion = 1,
+  metadataSchemaVersion: configMetadataVersion = 1,
   taxonomyVersion,
   designSystem,
   repo,
@@ -60,7 +65,6 @@ const FACETS_FILE = join(TILE_DIR, 'facets.json');
 function findHtmlFiles(dir, files = []) {
   const items = readdirSync(dir);
   for (const item of items) {
-    // Skip the index files themselves
     if (item === 'components.index.json' || item === 'facets.json') continue;
     const fullPath = join(dir, item);
     const stat = statSync(fullPath);
@@ -76,7 +80,6 @@ function findHtmlFiles(dir, files = []) {
 // --- Metadata extraction ---
 
 function extractMeta(htmlContent, filePath) {
-  // Try to extract the configured agent-meta block
   const metaRegex = new RegExp(
     `<script[^>]*id="${agentMetaId}"[^>]*>([\\s\\S]*?)</script>`,
     'i'
@@ -102,12 +105,105 @@ function extractBasicMeta(htmlContent, filePath) {
   };
 }
 
-// --- Generic facet building ---
+// --- Schema normalization ---
 
 /**
- * Build facet counts for a single field across all components.
- * Handles strings, arrays, and objects generically.
+ * Normalize v2 categorized metadata into the flat index format.
+ * The index always uses flat fields for backward compatibility with
+ * existing agent code that filters by top-level facet names.
  */
+function normalizeV2ToFlat(meta) {
+  const flat = {
+    file: meta.file,
+    title: meta.title,
+    _schemaVersion: meta._schemaVersion || 2,
+  };
+
+  if (meta.discovery) {
+    Object.assign(flat, meta.discovery);
+  }
+
+  // Compliance & mobileUX: keep the full blocks out of the index; expose only
+  // flattened summary fields for facet filtering.
+  const compliance = meta.discovery?.compliance || meta.compliance;
+  if (compliance) {
+    if (compliance.fedRampLevel !== undefined) flat.fedRampLevel = compliance.fedRampLevel;
+    if (compliance.piiHandling !== undefined) flat.piiHandling = compliance.piiHandling;
+    if (compliance.auditTrailCompatible !== undefined) flat.auditTrailCompatible = compliance.auditTrailCompatible;
+    if (Array.isArray(compliance.nistControls)) flat.nistControls = compliance.nistControls;
+    delete flat.compliance;
+  }
+  const mobileUX = meta.discovery?.mobileUX || meta.mobileUX;
+  if (mobileUX) {
+    if (mobileUX.touchTargetSize !== undefined) flat.touchTargetSize = mobileUX.touchTargetSize;
+    delete flat.mobileUX;
+  }
+  if (Array.isArray(meta.supportedTokenProfiles)) {
+    flat.supportedTokenProfiles = meta.supportedTokenProfiles;
+  }
+
+  if (meta.selection) {
+    if (meta.selection.useWhen) flat.useWhen = meta.selection.useWhen;
+    if (meta.selection.avoidWhen) flat.avoidWhen = meta.selection.avoidWhen;
+  }
+
+  if (meta.instruction) {
+    if (meta.instruction.agentPrompt) flat.agentPrompt = meta.instruction.agentPrompt;
+    if (meta.instruction.relatedComponents) flat.relatedComponents = meta.instruction.relatedComponents;
+    for (const [k, v] of Object.entries(meta.instruction)) {
+      if (k !== 'agentPrompt' && k !== 'relatedComponents') flat[k] = v;
+    }
+  }
+
+  // Coordination: only lean summary fields go into the index.
+  // Verbose detail (reasons, sequences, full cost object) stays in the tile.
+  if (meta.coordination) {
+    const coord = meta.coordination;
+    if (Array.isArray(coord.prerequisiteComponents)) {
+      flat.prerequisites = coord.prerequisiteComponents
+        .map((p) => (typeof p === 'string' ? p : p.name))
+        .filter(Boolean);
+    }
+    if (Array.isArray(coord.incompatibleWith)) {
+      flat.incompatibleWith = coord.incompatibleWith
+        .map((p) => (typeof p === 'string' ? p : p.name))
+        .filter(Boolean);
+    }
+    if (coord.compositionCost && coord.compositionCost.costTier) {
+      flat.costTier = coord.compositionCost.costTier;
+    }
+    if (Array.isArray(coord.compositionRecipes)) {
+      flat.compositionRecipes = coord.compositionRecipes;
+    }
+  }
+
+  if (meta.constraints) {
+    if (meta.constraints.preserve) flat.preserveElements = meta.constraints.preserve;
+    if (meta.constraints.portableInvariants) flat.portableInvariants = meta.constraints.portableInvariants;
+    if (meta.constraints.editable) flat.editableAreas = meta.constraints.editable;
+    if (meta.constraints.limitations) flat.knownLimitations = meta.constraints.limitations;
+  }
+
+  if (meta.portability) {
+    flat.portability = meta.portability;
+  }
+
+  return flat;
+}
+
+/**
+ * Detect metadata schema version and normalize to flat format for the index.
+ */
+function normalizeMeta(meta) {
+  const version = meta._schemaVersion || 1;
+  if (version >= 2) {
+    return normalizeV2ToFlat(meta);
+  }
+  return meta;
+}
+
+// --- Generic facet building ---
+
 function buildFacetForField(components, field) {
   const counts = {};
 
@@ -116,28 +212,23 @@ function buildFacetForField(components, field) {
     if (value === undefined || value === null) continue;
 
     if (Array.isArray(value)) {
-      // Array field: count each element
       for (const v of value) {
         if (v === null || v === undefined) continue;
         const key = String(v);
         counts[key] = (counts[key] || 0) + 1;
       }
     } else if (typeof value === 'object') {
-      // Object field (e.g., a11y): iterate keys
       for (const [k, v] of Object.entries(value)) {
         if (typeof v === 'boolean') {
           if (v) {
-            // Count true booleans under the key name
             counts[k] = (counts[k] || 0) + 1;
           }
         } else if (v !== null && v !== undefined) {
-          // Count string/number values
           const key = String(v);
           counts[key] = (counts[key] || 0) + 1;
         }
       }
     } else {
-      // String, number, or boolean: count the value directly
       const key = String(value);
       counts[key] = (counts[key] || 0) + 1;
     }
@@ -163,6 +254,7 @@ function generate() {
   console.log(`Registry: ${name}`);
   console.log(`Agent meta ID: ${agentMetaId}`);
   console.log(`Tile directory: ${tileDir}`);
+  console.log(`Config metadata schema version: ${configMetadataVersion}`);
   console.log('');
 
   console.log('Scanning component tiles...');
@@ -170,6 +262,8 @@ function generate() {
   console.log(`Found ${htmlFiles.length} component tiles`);
 
   const components = [];
+  let v1Count = 0;
+  let v2Count = 0;
 
   for (const file of htmlFiles) {
     try {
@@ -179,25 +273,32 @@ function generate() {
       let meta = extractMeta(content, relPath);
 
       if (meta) {
-        // Ensure file path and id are correct
         meta.file = relPath;
         if (!meta.id) {
           meta.id = relPath.replace(/\//g, '-').replace('.html', '');
         }
-        components.push(meta);
-        console.log(`  \u2713 ${relPath}`);
+
+        const version = meta._schemaVersion || 1;
+        if (version >= 2) v2Count++;
+        else v1Count++;
+
+        const normalized = normalizeMeta(meta);
+        components.push(normalized);
+        console.log(`  ✓ ${relPath} (schema v${version})`);
       } else {
-        // Fall back to basic extraction
         const basicMeta = extractBasicMeta(content, relPath);
         basicMeta.file = relPath;
         basicMeta.id = relPath.replace(/\//g, '-').replace('.html', '');
         components.push(basicMeta);
+        v1Count++;
         console.log(`  ~ ${relPath} (basic metadata only)`);
       }
     } catch (e) {
-      console.error(`  \u2717 Error reading ${file}:`, e.message);
+      console.error(`  ✗ Error reading ${file}:`, e.message);
     }
   }
+
+  console.log(`\nSchema versions: ${v1Count} v1, ${v2Count} v2`);
 
   // Build facets
   console.log('\nBuilding facets...');
@@ -208,7 +309,6 @@ function generate() {
     total: components.length,
   };
 
-  // Add bySection if section facet exists
   if (facets.section) {
     counts.bySection = facets.section;
   }
@@ -216,6 +316,7 @@ function generate() {
   // Build index JSON
   const indexJson = {
     schemaVersion: indexSchemaVersion,
+    metadataSchemaVersion: configMetadataVersion,
     ...(taxonomyVersion !== undefined && { taxonomyVersion }),
     generatedBy: '_base/generate-index.mjs',
     counts,
@@ -225,6 +326,7 @@ function generate() {
   // Build facets JSON
   const facetsJson = {
     schemaVersion: indexSchemaVersion,
+    metadataSchemaVersion: configMetadataVersion,
     ...(taxonomyVersion !== undefined && { taxonomyVersion }),
     generatedBy: '_base/generate-index.mjs',
     total: components.length,
@@ -235,10 +337,10 @@ function generate() {
   // Write files
   console.log('\nWriting index files...');
   writeFileSync(COMPONENTS_INDEX, JSON.stringify(indexJson, null, 2));
-  console.log(`  \u2713 ${COMPONENTS_INDEX}`);
+  console.log(`  ✓ ${COMPONENTS_INDEX}`);
 
   writeFileSync(FACETS_FILE, JSON.stringify(facetsJson, null, 2));
-  console.log(`  \u2713 ${FACETS_FILE}`);
+  console.log(`  ✓ ${FACETS_FILE}`);
 
   console.log(`\nDone! Generated index with ${components.length} components`);
 }

@@ -48,6 +48,11 @@
       "type": "integer",
       "description": "Schema version for components.index.json"
     },
+    "metadataSchemaVersion": {
+      "type": "integer",
+      "description": "Metadata schema version for tile agent-meta blocks. v1 = flat structure, v2 = categorized (discovery/selection/instruction/constraints)",
+      "default": 1
+    },
     "taxonomyVersion": {
       "type": "integer",
       "description": "Optional taxonomy version for the facet vocabulary"
@@ -69,6 +74,67 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "Government compliance standards this registry supports"
+    },
+    "supportedDesignSystems": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Design systems that have classMapping entries in this registry's tiles (e.g., ['material', 'bootstrap'])"
+    },
+    "adapterBase": {
+      "type": "string",
+      "description": "Base URL for adapter registry (cross-design system semantic mappings)"
+    },
+    "mcp": {
+      "type": "object",
+      "description": "MCP server capability advertisement",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this registry ships an MCP server entry point",
+          "default": true
+        },
+        "server": {
+          "type": "string",
+          "description": "Path to the MCP server entry point (relative to registry root)",
+          "default": "_base/mcp/server.mjs"
+        },
+        "transport": {
+          "type": "string",
+          "enum": ["stdio"],
+          "description": "Transport supported by the server",
+          "default": "stdio"
+        },
+        "tools": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tool names exposed by the server",
+          "default": [
+            "search_components",
+            "get_component",
+            "list_facets",
+            "get_index",
+            "get_adapter",
+            "translate_component",
+            "get_recipe",
+            "query_compliance",
+            "get_versions"
+          ]
+        }
+      }
+    },
+    "tokenProfiles": {
+      "type": "object",
+      "description": "Named token override sets components can declare support for (e.g. highContrast, darkMode, compactDensity). Keys are profile names; values have description + tokenOverrides.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "tokenOverrides": {
+            "type": "object",
+            "description": "Token name → override value applied when this profile is active"
+          }
+        }
+      }
     },
     "updated": {
       "type": "string",

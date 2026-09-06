@@ -1,0 +1,20 @@
+{
+  "name": "{source}-to-{target}-adapter",
+  "description": "Semantic mappings from {sourceDS} to {targetDS}",
+  "source": {
+    "designSystem": "{sourceDS}",
+    "version": "{sourceVersion}",
+    "registry": "{sourceRegistryUrl}"
+  },
+  "targets": [
+    {
+      "id": "{target}",
+      "designSystem": "{targetDS}",
+      "version": "{targetVersion}",
+      "docs": "{targetDocsUrl}"
+    }
+  ],
+  "count": 0,
+  "adaptersUrl": "{adapterBaseUrl}/adapters/{component}.json",
+  "updated": "1.0.0"
+}
