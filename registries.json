@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "description": "Federated directory of registries implementing the ai-component-registry-spec. The spec lists implementations that pass conformance; registries reference the spec via _base. One-directional edges by design.",
+  "conformanceCommand": "node validate-registry.mjs --conformance <registry-path>",
+  "registries": [
+    {
+      "name": "uswds-ai-components",
+      "designSystem": "U.S. Web Design System 3.13.0",
+      "domain": "United States federal government",
+      "agentsJson": "https://raw.githubusercontent.com/ednark/uswds-ai-components/main/agents.json",
+      "tileCount": 146,
+      "metadataSchemaVersion": 2,
+      "conformance": "pass",
+      "mcp": true
+    },
+    {
+      "name": "drupal-uswds-ai-components",
+      "designSystem": "USWDS on Drupal",
+      "domain": "United States federal government (CMS integration)",
+      "agentsJson": "https://raw.githubusercontent.com/ednark/drupal-uswds-ai-components/main/agents.json",
+      "tileCount": 24,
+      "metadataSchemaVersion": 2,
+      "conformance": "pass",
+      "mcp": false
+    },
+    {
+      "name": "govuk-ai-components",
+      "designSystem": "GOV.UK Design System",
+      "domain": "United Kingdom government",
+      "agentsJson": "https://raw.githubusercontent.com/ednark/govuk-ai-components/main/agents.json",
+      "tileCount": 41,
+      "metadataSchemaVersion": 2,
+      "conformance": "pass",
+      "mcp": true
+    },
+    {
+      "name": "forever-ai-components",
+      "designSystem": "Forever (original concept)",
+      "domain": "Creative/animated web components",
+      "agentsJson": "https://raw.githubusercontent.com/isas1/forever-ai-components/main/agents.json",
+      "tileCount": 604,
+      "metadataSchemaVersion": 1,
+      "conformance": "pass",
+      "mcp": false
+    }
+  ]
+}

@@ -124,8 +124,14 @@ them.
 | Registry | Domain | Tiles | Conformance |
 |---|---|---|---|
 | [uswds-ai-components](https://github.com/ednark/uswds-ai-components) | U.S. Web Design System (government) | 146 | pass |
+| [govuk-ai-components](https://github.com/ednark/govuk-ai-components) | GOV.UK Design System (UK government) | 41 | pass |
 | [forever-ai-components](https://github.com/isas1/forever-ai-components) | Creative/animated components (origin project) | 604 | pass |
 | drupal-uswds-ai-components | Drupal integration guidance | 24 | pass |
+
+The machine-readable directory is [`registries.json`](registries.json) — the seed
+of the federated directory: the spec lists implementations that pass
+conformance; registries reference the spec via `_base`. One-directional edges
+by design.
 
 ## Credits
 
