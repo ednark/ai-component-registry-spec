@@ -127,6 +127,7 @@ them.
 | [govuk-ai-components](https://github.com/ednark/govuk-ai-components) | GOV.UK Design System (UK government) | 41 | pass |
 | [dsfr-ai-components](https://github.com/ednark/dsfr-ai-components) | Système de Design de l'État (French government) | 39 | pass |
 | [ecl-ai-components](https://github.com/ednark/ecl-ai-components) | Europa Component Library (European Commission / EU) | 29 | pass |
+| [canada-ai-components](https://github.com/ednark/canada-ai-components) | Canada.ca Design System (Government of Canada, bilingual EN/FR) | 24 | pass |
 | [forever-ai-components](https://github.com/isas1/forever-ai-components) | Creative/animated components (origin project) | 604 | pass |
 | drupal-uswds-ai-components | Drupal integration guidance | 24 | pass |
 

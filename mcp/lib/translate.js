@@ -23,17 +23,26 @@ function buildClassMap(meta, target) {
   };
 
   // 1. Tile-level classMapping (simple substitution)
+  // The source base class is registry-specific — derive it from the tile's
+  // discovery class field (canadaClass/frClass/govukClass/eclClass/uswdClass).
+  const sourceBase =
+    meta?.discovery?.canadaClass ||
+    meta?.discovery?.frClass ||
+    meta?.discovery?.govukClass ||
+    meta?.discovery?.eclClass ||
+    meta?.discovery?.uswdClass ||
+    'usa-button';
   const cm = meta?.portability?.classMapping?.[target];
   if (cm && typeof cm === 'object') {
     result.source = 'classMapping';
-    if (cm.base) result.map['usa-button'] = cm.base;
-    if (cm.default) result.map['usa-button'] = cm.default;
+    if (cm.base) result.map[sourceBase] = cm.base;
+    if (cm.default) result.map[sourceBase] = cm.default;
     for (const [variant, targetClass] of Object.entries(cm)) {
       if (variant === 'base' || variant === 'default') continue;
       if (targetClass == null) {
-        result.map[`usa-button--${variant}`] = null; // explicit "no equivalent"
+        result.map[`${sourceBase}--${variant}`] = null; // explicit "no equivalent"
       } else {
-        result.map[`usa-button--${variant}`] = targetClass;
+        result.map[`${sourceBase}--${variant}`] = targetClass;
       }
     }
     return result;

@@ -44,6 +44,16 @@
       "mcp": true
     },
     {
+      "name": "canada-ai-components",
+      "designSystem": "Canada.ca Design System (GCWeb) 5.x",
+      "domain": "Government of Canada (bilingual EN/FR)",
+      "agentsJson": "https://raw.githubusercontent.com/ednark/canada-ai-components/main/agents.json",
+      "tileCount": 24,
+      "metadataSchemaVersion": 2,
+      "conformance": "pass",
+      "mcp": true
+    },
+    {
       "name": "govuk-ai-components",
       "designSystem": "GOV.UK Design System",
       "domain": "United Kingdom government",
