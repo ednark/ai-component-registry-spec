@@ -322,6 +322,23 @@ Registries can add fields specific to their design system within any category. F
 }
 ```
 
+### Provenance Fields (where the tile knowledge came from)
+
+Optional block recording when and where the component/variant knowledge was
+acquired — valuable for field-research-driven registries and for auditing
+coverage claims.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `provenance.observed` | date | when the variant was observed/derived (YYYY-MM-DD) |
+| `provenance.source` | string | URL of the site or documentation page where it was observed |
+| `provenance.method` | enum | `live-site observation` \| `design-system documentation` \| `coverage audit` |
+
+**Index leanness rule:** provenance stays in the tile; it is never copied into
+the discovery index. Registries doing systematic field research should also
+maintain a session log at `{tileDir}/provenance.json` (sessions with date,
+source, findings, and tilesAdded).
+
 ## File Naming Convention
 
 Tiles are organized as `{tileDir}/{component}/{variant}.html`:

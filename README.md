@@ -123,11 +123,11 @@ them.
 
 | Registry | Domain | Tiles | Conformance |
 |---|---|---|---|
-| [uswds-ai-components](https://github.com/ednark/uswds-ai-components) | U.S. Web Design System (government) | 146 | pass |
-| [govuk-ai-components](https://github.com/ednark/govuk-ai-components) | GOV.UK Design System (UK government) | 41 | pass |
-| [dsfr-ai-components](https://github.com/ednark/dsfr-ai-components) | Système de Design de l'État (French government) | 39 | pass |
-| [ecl-ai-components](https://github.com/ednark/ecl-ai-components) | Europa Component Library (European Commission / EU) | 29 | pass |
-| [canada-ai-components](https://github.com/ednark/canada-ai-components) | Canada.ca Design System (Government of Canada, bilingual EN/FR) | 24 | pass |
+| [uswds-ai-components](https://github.com/ednark/uswds-ai-components) | U.S. Web Design System (government) | 152 | pass |
+| [govuk-ai-components](https://github.com/ednark/govuk-ai-components) | GOV.UK Design System (UK government) | 45 | pass |
+| [dsfr-ai-components](https://github.com/ednark/dsfr-ai-components) | Système de Design de l'État (French government) | 42 | pass |
+| [ecl-ai-components](https://github.com/ednark/ecl-ai-components) | Europa Component Library (European Commission / EU) | 36 | pass |
+| [canada-ai-components](https://github.com/ednark/canada-ai-components) | Canada.ca Design System (Government of Canada, bilingual EN/FR) | 25 | pass |
 | [forever-ai-components](https://github.com/isas1/forever-ai-components) | Creative/animated components (origin project) | 604 | pass |
 | drupal-uswds-ai-components | Drupal integration guidance | 24 | pass |
 

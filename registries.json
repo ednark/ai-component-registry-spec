@@ -8,7 +8,7 @@
       "designSystem": "U.S. Web Design System 3.13.0",
       "domain": "United States federal government",
       "agentsJson": "https://raw.githubusercontent.com/ednark/uswds-ai-components/main/agents.json",
-      "tileCount": 146,
+      "tileCount": 152,
       "metadataSchemaVersion": 2,
       "conformance": "pass",
       "mcp": true
@@ -28,7 +28,7 @@
       "designSystem": "Système de Design de l'État (DSFR) 1.15",
       "domain": "France (state services, .gouv.fr)",
       "agentsJson": "https://raw.githubusercontent.com/ednark/dsfr-ai-components/main/agents.json",
-      "tileCount": 39,
+      "tileCount": 42,
       "metadataSchemaVersion": 2,
       "conformance": "pass",
       "mcp": true
@@ -38,7 +38,7 @@
       "designSystem": "Europa Component Library (ECL) 5.2",
       "domain": "European Commission / EU institutions",
       "agentsJson": "https://raw.githubusercontent.com/ednark/ecl-ai-components/main/agents.json",
-      "tileCount": 29,
+      "tileCount": 36,
       "metadataSchemaVersion": 2,
       "conformance": "pass",
       "mcp": true
@@ -48,7 +48,7 @@
       "designSystem": "Canada.ca Design System (GCWeb) 5.x",
       "domain": "Government of Canada (bilingual EN/FR)",
       "agentsJson": "https://raw.githubusercontent.com/ednark/canada-ai-components/main/agents.json",
-      "tileCount": 24,
+      "tileCount": 25,
       "metadataSchemaVersion": 2,
       "conformance": "pass",
       "mcp": true
@@ -58,7 +58,7 @@
       "designSystem": "GOV.UK Design System",
       "domain": "United Kingdom government",
       "agentsJson": "https://raw.githubusercontent.com/ednark/govuk-ai-components/main/agents.json",
-      "tileCount": 41,
+      "tileCount": 45,
       "metadataSchemaVersion": 2,
       "conformance": "pass",
       "mcp": true
