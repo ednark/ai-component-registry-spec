@@ -111,6 +111,11 @@ function extractBasicMeta(htmlContent, filePath) {
  * Normalize v2 categorized metadata into the flat index format.
  * The index always uses flat fields for backward compatibility with
  * existing agent code that filters by top-level facet names.
+ *
+ * Leanness rule: the index carries discovery facets and lean summary
+ * fields ONLY. Adaptation prose (agentPrompt, useWhen/avoidWhen,
+ * preserve/editable/limitations, portability maps) travels in the tile's
+ * agent-meta block — one fetch returns code + instructions together.
  */
 function normalizeV2ToFlat(meta) {
   const flat = {
@@ -142,17 +147,13 @@ function normalizeV2ToFlat(meta) {
     flat.supportedTokenProfiles = meta.supportedTokenProfiles;
   }
 
-  if (meta.selection) {
-    if (meta.selection.useWhen) flat.useWhen = meta.selection.useWhen;
-    if (meta.selection.avoidWhen) flat.avoidWhen = meta.selection.avoidWhen;
-  }
+  // Selection: useWhen/avoidWhen are prose and live in the tile only.
+  // Agents read them from the tile after selecting it.
 
+  // Instruction: keep name-list fields; prose (agentPrompt) stays in the tile.
   if (meta.instruction) {
-    if (meta.instruction.agentPrompt) flat.agentPrompt = meta.instruction.agentPrompt;
     if (meta.instruction.relatedComponents) flat.relatedComponents = meta.instruction.relatedComponents;
-    for (const [k, v] of Object.entries(meta.instruction)) {
-      if (k !== 'agentPrompt' && k !== 'relatedComponents') flat[k] = v;
-    }
+    if (meta.instruction.variants) flat.variants = meta.instruction.variants;
   }
 
   // Coordination: only lean summary fields go into the index.
@@ -177,16 +178,9 @@ function normalizeV2ToFlat(meta) {
     }
   }
 
-  if (meta.constraints) {
-    if (meta.constraints.preserve) flat.preserveElements = meta.constraints.preserve;
-    if (meta.constraints.portableInvariants) flat.portableInvariants = meta.constraints.portableInvariants;
-    if (meta.constraints.editable) flat.editableAreas = meta.constraints.editable;
-    if (meta.constraints.limitations) flat.knownLimitations = meta.constraints.limitations;
-  }
-
-  if (meta.portability) {
-    flat.portability = meta.portability;
-  }
+  // Constraints & portability: never in the index — enforced at tile level
+  // (constraints.preserve/editable/limitations, portableInvariants,
+  // portability.classMapping). One tile fetch returns code + instructions.
 
   return flat;
 }
