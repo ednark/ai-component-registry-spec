@@ -84,6 +84,11 @@
       "type": "string",
       "description": "Base URL for adapter registry (cross-design system semantic mappings)"
     },
+    "compatibilityPath": {
+      "type": "string",
+      "description": "Path to the family-level compatibility map, relative to the registry root (default: compatibility.json; monorepo registries may point at a shared cross/ directory)",
+      "default": "compatibility.json"
+    },
     "mcp": {
       "type": "object",
       "description": "MCP server capability advertisement",

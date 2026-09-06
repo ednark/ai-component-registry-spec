@@ -103,10 +103,13 @@ export function readAdapterManifest() {
 
 /**
  * Family-level cross-system compatibility map (e.g. USWDS → GOV.UK / Carbon).
- * Lives at the registry root as compatibility.json; returns null when absent.
+ * Location: `compatibilityPath` from registry.config.json (relative to the
+ * registry root; defaults to ./compatibility.json for single-registry repos —
+ * monorepo registries point at a shared cross/ directory).
  */
 export function readCompatibility() {
-  const path = join(REGISTRY_ROOT, 'compatibility.json');
+  const { compatibilityPath = 'compatibility.json' } = loadConfig();
+  const path = join(REGISTRY_ROOT, compatibilityPath);
   if (!existsSync(path)) return null;
   return JSON.parse(readFileSync(path, 'utf-8'));
 }
