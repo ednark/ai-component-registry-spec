@@ -273,7 +273,7 @@ if (!existsSync(indexPath)) {
         return v !== undefined && v !== null && !(Array.isArray(v) && v.length === 0);
       }).length;
       if (withFacet === 0) warn(`facet "${facet}" has zero coverage across ${tileFiles.length} tiles`);
-      else if (withFacet < tileFiles.length) console.log(`  ℹ facet "${facet}" coverage: ${withFacet}/${tileFiles.length} (partial facets are valid)`);
+      else if (withFacet < tileFiles.length) (CONFORMANCE_ONLY ? console.error : console.log)(`  ℹ facet "${facet}" coverage: ${withFacet}/${tileFiles.length} (partial facets are valid)`);
     }
 
     // Leanness budget — per-record, scale-free (a lean 600-record index is fine;
@@ -283,7 +283,7 @@ if (!existsSync(indexPath)) {
     const perRecord = bytes / recordCount;
     if (perRecord > 3072) error(`index averages ${Math.round(perRecord)}B/record (over 3KB) — move prose out of the index`);
     else if (perRecord > 2048) warn(`index averages ${Math.round(perRecord)}B/record (over 2KB) — check for bloated fields`);
-    else console.log(`  ℹ index leanness: ${Math.round(perRecord)}B/record across ${recordCount} records`);
+    else (CONFORMANCE_ONLY ? console.error : console.log)(`  ℹ index leanness: ${Math.round(perRecord)}B/record across ${recordCount} records`);
   }
 }
 
