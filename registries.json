@@ -24,6 +24,16 @@
       "mcp": false
     },
     {
+      "name": "dsfr-ai-components",
+      "designSystem": "Système de Design de l'État (DSFR) 1.15",
+      "domain": "France (state services, .gouv.fr)",
+      "agentsJson": "https://raw.githubusercontent.com/ednark/dsfr-ai-components/main/agents.json",
+      "tileCount": 39,
+      "metadataSchemaVersion": 2,
+      "conformance": "pass",
+      "mcp": true
+    },
+    {
       "name": "govuk-ai-components",
       "designSystem": "GOV.UK Design System",
       "domain": "United Kingdom government",
