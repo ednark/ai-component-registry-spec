@@ -34,6 +34,16 @@
       "mcp": true
     },
     {
+      "name": "ecl-ai-components",
+      "designSystem": "Europa Component Library (ECL) 5.2",
+      "domain": "European Commission / EU institutions",
+      "agentsJson": "https://raw.githubusercontent.com/ednark/ecl-ai-components/main/agents.json",
+      "tileCount": 29,
+      "metadataSchemaVersion": 2,
+      "conformance": "pass",
+      "mcp": true
+    },
+    {
       "name": "govuk-ai-components",
       "designSystem": "GOV.UK Design System",
       "domain": "United Kingdom government",
