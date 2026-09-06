@@ -30,10 +30,13 @@ Each sub-registry:
 
 | File | Purpose |
 |------|---------|
-| `protocol.md` | The retrieval protocol spec (3-surface architecture, flow, constraint handling, adaptation rules) |
+| `protocol.md` | The retrieval protocol spec (5 surfaces: facets, index, tile, recipes, versions — plus flow, constraint handling, adaptation rules) |
 | `tile-format.md` | HTML tile format with embedded `*-agent-meta` JSON block (supports schema v1 flat and v2 categorized metadata) |
-| `generate-index.mjs` | Generic, config-driven index generator (normalizes v1 and v2 metadata to flat index) |
+| `generate-index.mjs` | Generic, config-driven index generator (normalizes v1 and v2 metadata to a lean, prose-free index) |
 | `registry.config.schema.json` | JSON Schema for validating `registry.config.json` |
+| `validate-registry.mjs` | Registry linter + cross-registry conformance checker |
+| `compliance-scorer.mjs` | Compliance coverage report (FedRAMP/PII/audit/NIST) |
+| `cost-modeler.mjs` | Cheapest-agent-path estimator from costTier metadata |
 | `agents.template.json` | Template for the `agents.json` manifest |
 | `llms.template.txt` | Template for `llms.txt` |
 | `catalog.template.json` | Template for `catalog.json` |
@@ -105,11 +108,24 @@ generic server in `mcp/`. It reads `registry.config.json` + `tileDir` from the c
 directory, so the same server serves USWDS, Drupal, or any future sub-registry.
 
 Tools exposed: `search_components`, `get_component`, `list_facets`, `get_index`, `get_adapter`,
-`translate_component`. Transport is **stdio** (no network). See `mcp/README.md` for run + connect
-instructions.
+`translate_component`, `get_recipe`, `query_compliance`, `get_versions`. Transport is **stdio**
+(no network). See `mcp/README.md` for run + connect instructions.
 
 To enable for a sub-registry, add a minimal `package.json` installing `@modelcontextprotocol/sdk`
 and a `mcp` script (`node _base/mcp/server.mjs`), then run `npm run mcp` from the registry root.
+
+## Known Registries
+
+Registries that implement this spec. Each is certified with
+`node validate-registry.mjs --conformance <path>` — the identical 5-step agent
+flow (manifest → facets → index → filter → tile) runs unchanged against all of
+them.
+
+| Registry | Domain | Tiles | Conformance |
+|---|---|---|---|
+| [uswds-ai-components](https://github.com/ednark/uswds-ai-components) | U.S. Web Design System (government) | 146 | pass |
+| [forever-ai-components](https://github.com/isas1/forever-ai-components) | Creative/animated components (origin project) | 604 | pass |
+| drupal-uswds-ai-components | Drupal integration guidance | 24 | pass |
 
 ## Credits
 

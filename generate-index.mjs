@@ -193,7 +193,16 @@ function normalizeMeta(meta) {
   if (version >= 2) {
     return normalizeV2ToFlat(meta);
   }
-  return meta;
+  // v1 (flat) tiles: strip known prose fields so the index stays lean for
+  // legacy registries too — the leanness rule applies regardless of schema.
+  const PROSE_FIELDS = [
+    'agentPrompt', 'useWhen', 'avoidWhen',
+    'preserveElements', 'editableAreas', 'knownLimitations',
+    'portableInvariants', 'portability', 'settings', 'tokenOverrides',
+  ];
+  const lean = { ...meta };
+  for (const f of PROSE_FIELDS) delete lean[f];
+  return lean;
 }
 
 // --- Generic facet building ---
