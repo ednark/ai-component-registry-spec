@@ -199,10 +199,12 @@ if (existsSync(recipesDir)) {
     'govuk-ai-components': 'govukClass',
     'dsfr-ai-components': 'frClass',
     'ecl-ai-components': 'eclClass',
-    'canada-ai-components': 'canadaClass'
+    'canada-ai-components': 'canadaClass',
+    'drupal-uswds-ai-components': 'uswdClass'
   }[config.name];
   if (classField && metaById.size) {
-    const missing = [...metaById.entries()].filter(([, m]) => !m.discovery?.[classField]);
+    const missing = [...metaById.entries()].filter(([, m]) =>
+      !m.discovery?.[classField] && !m.discovery?.multiComponent);
     if (missing.length) {
       warn(`class-field "${classField}" missing on ${missing.length}/${metaById.size} tiles (e.g. ${missing[0][0]}) — class-level coverage checking will be incomplete`);
     }
