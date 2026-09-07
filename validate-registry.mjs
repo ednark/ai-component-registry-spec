@@ -209,6 +209,17 @@ if (existsSync(recipesDir)) {
   }
 }
 
+// --- Declared gaps ---
+if (Array.isArray(config.gaps)) {
+  for (const gap of config.gaps) {
+    if (!gap.concept) error('gaps: entry missing "concept"');
+    if (!['not_part_of_design_system', 'deferred'].includes(gap.status)) {
+      error(`gaps: ${gap.concept || '?'} has invalid status "${gap.status}"`);
+    }
+    if (!gap.reason) warn(`gaps: ${gap.concept || '?'} missing reason`);
+  }
+}
+
 // --- 3. Version history + compatibility maps ---
 
 const versionsFile = join(TILE_DIR, 'versions.json');

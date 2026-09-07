@@ -127,6 +127,20 @@
         }
       }
     },
+    "gaps": {
+      "type": "array",
+      "description": "Declared component-concept gaps: design-system components or patterns this registry intentionally does not tile, with the nearest available alternative. Agents query this instead of inferring from absence.",
+      "items": {
+        "type": "object",
+        "required": ["concept", "status", "reason"],
+        "properties": {
+          "concept": { "type": "string", "description": "Component concept name (e.g. combobox, card, mega-menu)" },
+          "status": { "type": "string", "enum": ["not_part_of_design_system", "deferred"], "description": "not_part_of_design_system = doctrine/pattern, do not invent; deferred = candidate for a future tile" },
+          "nearestAlternative": { "type": "string", "description": "Tiled family or recipe to use instead" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
     "tokenProfiles": {
       "type": "object",
       "description": "Named token override sets components can declare support for (e.g. highContrast, darkMode, compactDensity). Keys are profile names; values have description + tokenOverrides.",
