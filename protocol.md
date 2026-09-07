@@ -217,6 +217,46 @@ After adapting a component, verify:
 
 If validation fails, revert the violating change and try an alternative approach.
 
+## Agent-facing docs
+
+Every registry ships two hand-authored agent entry points, kept prose-first
+and hand-maintained — never generated from tooling. The registries'
+Decision Strategy and Quality Gates sections above are the shared skeleton;
+each registry folds its mandates (bilingual parity, error model, identity
+assets) into them.
+
+### llms.txt — the lean agent protocol
+
+Recommended section order:
+
+1. **Quick start** — the surface URLs (agents.json, facets.json, index, tile
+   pattern, recipes, versions)
+2. **Facets** — the filter vocabulary
+3. **Decision strategy** — the registry's ladder from the Decision Strategy
+   section, ending with "only generate new UI if no suitable component exists"
+4. **Quality gates and declared gaps** — do-not-retrieve rules mapped to
+   facets (costTier, requiresJs, knownLimitations), plus pointers to the
+   registry's declared `gaps` (registry.config.json) and core-classes.json
+   (the untiled layout/typography layer)
+5. **Component schema** — what an index record and a tile meta block contain
+6. **Patterns** — task-to-component-set guidance or a pointer to recipes
+7. **Output contract** — the registry's contract from the Output Contract
+   section
+
+### agents.json — the compact machine manifest
+
+Keep it ~2KB: registry identity, URLs (index/facets/tiles/recipes/versions/
+compatibility), count, facets, retrieval flow, agentMetaId/tileDir, MCP
+flags, schema versions. Prose detail (adaptation guidance, constraint
+priority, category explanations, token-profile tables) belongs in llms.txt
+and AGENTS.md, not the manifest.
+
+### AGENTS.md — the working rules
+
+Retrieval workflow, registry-specific mandates (bilingual parity, error
+model, identity-asset rules), quality gates, constraint priority, MCP and
+CLI usage.
+
 ## Output Contract
 
 When returning components to a user, include:
