@@ -339,6 +339,43 @@ the discovery index. Registries doing systematic field research should also
 maintain a session log at `{tileDir}/provenance.json` (sessions with date,
 source, findings, and tilesAdded).
 
+### Core Classes (the untiled layer)
+
+Registries tile **components** — but agents assembling full pages also need
+each design system's **layout/grid/typography/wrapper classes**, which are
+deliberately not components. Every registry publishes a
+`core-classes.json` manifest declaring that layer, so page assembly never
+relies on out-of-band knowledge or invented classes.
+
+```json
+{
+  "schemaVersion": 1,
+  "registry": "dsfr-ai-components",
+  "description": "Real, documented design-system classes that are NOT tiled components",
+  "categories": {
+    "layout": ["fr-container", "fr-grid-row", "fr-col-6", "fr-col-12"],
+    "typography": ["fr-h5", "fr-text--sm", "fr-text--lg"],
+    "elements": ["fr-link", "fr-logo", "fr-label", "fr-hint-text"],
+    "states": ["fr-error-text", "fr-valid-text"]
+  }
+}
+```
+
+**Authoring rule (enforced by field testing):** site customizations and
+composition layout are expressed with **inline styles or core classes** —
+never with invented component-style classes (`fr-*`, `usa-*`, `govuk-*`,
+`ecl-*` names that no tile defines). Zero invented classes is an acceptance
+criterion of the field-test procedure (`test-procedure.md`).
+
+### Language Fields
+
+Tile markup labels are written in the registry's declared language(s).
+Registries declare their language convention in `registry.config.json`
+(`language` for single-language registries, `languages` for bilingual
+mandates such as Canada). Bilingual-default registries (DSFR) carry
+target-language strings in tile markup — agents translating into them must
+expect and handle target-language label text.
+
 ## File Naming Convention
 
 Tiles are organized as `{tileDir}/{component}/{variant}.html`:

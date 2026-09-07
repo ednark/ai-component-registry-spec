@@ -188,6 +188,27 @@ if (existsSync(recipesDir)) {
   }
 }
 
+// --- Class-field completeness (registry metadata defect class) ---
+// The discovery class field (uswdClass/govukClass/frClass/eclClass/canadaClass)
+// is required for class-level coverage checking. The T2 round-trip caught
+// 149/152 USWDS tiles missing it — this rule makes that defect impossible
+// to reintroduce silently.
+{
+  const classField = {
+    'uswds-ai-components': 'uswdClass',
+    'govuk-ai-components': 'govukClass',
+    'dsfr-ai-components': 'frClass',
+    'ecl-ai-components': 'eclClass',
+    'canada-ai-components': 'canadaClass'
+  }[config.name];
+  if (classField && metaById.size) {
+    const missing = [...metaById.entries()].filter(([, m]) => !m.discovery?.[classField]);
+    if (missing.length) {
+      warn(`class-field "${classField}" missing on ${missing.length}/${metaById.size} tiles (e.g. ${missing[0][0]}) — class-level coverage checking will be incomplete`);
+    }
+  }
+}
+
 // --- 3. Version history + compatibility maps ---
 
 const versionsFile = join(TILE_DIR, 'versions.json');

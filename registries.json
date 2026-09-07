@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "description": "Federated directory of registries implementing the ai-component-registry-spec. The spec lists implementations that pass conformance; registries reference the spec via _base. One-directional edges by design.",
   "conformanceCommand": "node validate-registry.mjs --conformance <registry-path>",
+  "coreClassesManifest": "Each registry publishes infinite/core-classes.json — the documented untiled layer (layout/grid/typography) for page assembly. See tile-format.md Core Classes.",
   "registries": [
     {
       "name": "uswds-ai-components",
