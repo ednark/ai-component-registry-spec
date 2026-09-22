@@ -57,6 +57,47 @@
       "type": "integer",
       "description": "Optional taxonomy version for the facet vocabulary"
     },
+    "staticView": {
+      "type": "object",
+      "description": "Resolved-view generation inputs (see _base/generate-resolved-view.mjs). Resolved views are generated computed-style companions skipped by index/validator.",
+      "properties": {
+        "css": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Stylesheets (paths relative to registry root) injected into every tile at generation time. Use when tiles rely on external design-system CSS."
+        },
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer", "default": 1280 },
+            "height": { "type": "integer", "default": 4000 }
+          }
+        },
+        "classCheck": {
+          "type": "object",
+          "description": "Class ground-truth validation: every tile-DOM class with `prefix` must be defined by the staticView.css stylesheets or allowlisted here (with reason). Catches hallucinated design-system classes.",
+          "properties": {
+            "prefix": { "type": "string", "default": "usa-" },
+            "allowlist": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  { "type": "string" },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "class": { "type": "string" },
+                      "reason": { "type": "string", "description": "Why this class is exempt (JS mount, documented no-op, registry demo class)" }
+                    },
+                    "required": ["class", "reason"]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "repo": {
       "type": "string",
       "description": "GitHub repo URL"

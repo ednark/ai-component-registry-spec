@@ -20,7 +20,7 @@
  * This is the shared generator that works for any sub-registry.
  */
 
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join, dirname, basename, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -70,7 +70,7 @@ function findHtmlFiles(dir, files = []) {
     const stat = statSync(fullPath);
     if (stat.isDirectory()) {
       findHtmlFiles(fullPath, files);
-    } else if (item.endsWith('.html')) {
+    } else if (item.endsWith('.html') && !item.endsWith('.resolved.html')) {
       files.push(fullPath);
     }
   }
@@ -281,17 +281,30 @@ function generate() {
           meta.id = relPath.replace(/\//g, '-').replace('.html', '');
         }
 
+        // Resolved view as a first-class retrieval surface: when the generated
+        // computed-style companion exists next to the tile, expose its path on
+        // the index record so agents can fetch appearance without guessing.
+        const resolvedCandidate = file.replace(/\.html$/, '.resolved.html');
+        if (existsSync(resolvedCandidate)) {
+          meta.resolvedView = relPath.replace(/\.html$/, '.resolved.html');
+        }
+
         const version = meta._schemaVersion || 1;
         if (version >= 2) v2Count++;
         else v1Count++;
 
         const normalized = normalizeMeta(meta);
+        if (meta.resolvedView) normalized.resolvedView = meta.resolvedView;
         components.push(normalized);
         console.log(`  ✓ ${relPath} (schema v${version})`);
       } else {
         const basicMeta = extractBasicMeta(content, relPath);
         basicMeta.file = relPath;
         basicMeta.id = relPath.replace(/\//g, '-').replace('.html', '');
+        const resolvedCandidate = file.replace(/\.html$/, '.resolved.html');
+        if (existsSync(resolvedCandidate)) {
+          basicMeta.resolvedView = relPath.replace(/\.html$/, '.resolved.html');
+        }
         components.push(basicMeta);
         v1Count++;
         console.log(`  ~ ${relPath} (basic metadata only)`);

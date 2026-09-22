@@ -20,6 +20,7 @@
  */
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { createHash } from 'crypto';
 import { join, resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -56,6 +57,34 @@ for (const field of REQUIRED_CONFIG) {
 const { agentMetaId, tileDir = 'infinite', facets = [], additionalFields = [] } = config;
 const TILE_DIR = join(ROOT, tileDir);
 
+// --- 1b. Class ground truth (optional, config-driven) ---
+// staticView.classCheck: every tile-DOM class with `prefix` must be defined by
+// the design-system stylesheet (staticView.css) or explicitly allowlisted with
+// a reason (JS mounts, documented no-ops, registry demo classes). Catches
+// hallucinated design-system classes at the source (field-test L9 asymmetry).
+const classCheck = config.staticView?.classCheck ?? null;
+let definedClasses = null;
+const classAllow = new Map(
+  (classCheck?.allowlist ?? []).map((a) => [typeof a === 'string' ? a : a.class, typeof a === 'string' ? 'allowlisted' : (a.reason ?? 'allowlisted')])
+);
+if (classCheck) {
+  let cssText = '';
+  let cssMissing = false;
+  for (const p of config.staticView?.css ?? []) {
+    try {
+      cssText += readFileSync(join(ROOT, p), 'utf-8');
+    } catch {
+      warn(`staticView.css entry not found: ${p} — class ground-truth check skipped`);
+      cssMissing = true;
+    }
+  }
+  if (!cssMissing) {
+    if (!cssText.trim()) warn('staticView.classCheck declared but staticView.css is empty — class ground-truth check skipped');
+    else definedClasses = new Set([...cssText.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map((m) => m[1]));
+  }
+}
+const CLASS_PREFIX = classCheck?.prefix ?? 'usa-';
+
 // What the registry *declares* governs which metadata checks are hard errors.
 const declares = {
   coordination: additionalFields.includes('coordination') || facets.some((f) => ['costTier', 'prerequisites'].includes(f)),
@@ -72,7 +101,7 @@ function findHtmlFiles(dir, files = []) {
     const full = join(dir, item);
     const stat = statSync(full);
     if (stat.isDirectory()) findHtmlFiles(full, files);
-    else if (item.endsWith('.html')) files.push(full);
+    else if (item.endsWith('.html') && !item.endsWith('.resolved.html')) files.push(full);
   }
   return files;
 }
@@ -101,6 +130,43 @@ for (const file of tileFiles) {
   }
 
   metaById.set(relPath, meta);
+
+  // Class ground truth: DOM classes must exist in the design-system stylesheet.
+  if (definedClasses) {
+    const domOnly = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      // Documentation tiles show class strings inside code samples; those are
+      // documentation, not live markup.
+      .replace(/<(code|pre)[\s\S]*?<\/\1>/gi, '');
+    const used = new Set();
+    for (const m of domOnly.matchAll(/class="([^"]+)"/g)) {
+      for (const c of m[1].split(/\s+/)) {
+        if (c.startsWith(CLASS_PREFIX)) used.add(c);
+      }
+    }
+    for (const c of used) {
+      if (definedClasses.has(c) || classAllow.has(c)) continue;
+      error(`${relPath}: class "${c}" is not defined by the design-system stylesheet (staticView.css) and not allowlisted — ${classAllow.get(c) ?? 'hallucinated design-system class'}`);
+    }
+  }
+
+  // Resolved-view staleness guard: when a registry declares staticView, every
+  // tile must have its generated companion, and it must match the tile's
+  // current source hash (mtime comparison is unreliable across git clones).
+  if (config.staticView) {
+    const resolvedPath = file.replace(/\.html$/, '.resolved.html');
+    if (!existsSync(resolvedPath)) {
+      warn(`${relPath}: resolved view missing (${relPath.replace(/\.html$/, '.resolved.html')}) — run _base/generate-resolved-view.mjs`);
+    } else {
+      const stamp = readFileSync(resolvedPath, 'utf-8').match(/resolved-from: sha256:([a-f0-9]{64})/);
+      if (!stamp) {
+        warn(`${relPath}: resolved view has no source hash stamp — regenerate with _base/generate-resolved-view.mjs`);
+      } else if (stamp[1] !== createHash('sha256').update(html).digest('hex')) {
+        warn(`${relPath}: resolved view is stale (tile changed since generation) — regenerate`);
+      }
+    }
+  }
 
   // file convention varies by registry: tileDir-relative (USWDS) or
   // registry-root-relative (forever). Accept either; only mismatch = error.

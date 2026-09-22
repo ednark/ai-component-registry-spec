@@ -9,7 +9,13 @@ Every component in the registry is a single self-contained `.html` file. The fil
 
 ## File Requirements
 
-- **Self-contained**: all CSS and JS is inline. No external dependencies (unless the design system itself requires them, e.g., USWDS CSS).
+- **Structurally self-contained**: all markup, component class names, and
+  embedded metadata need nothing external. All CSS and JS that the registry
+  itself authors is inline. Where a design system's component styling lives in
+  the design system's own stylesheet (e.g., USWDS CSS), tiles rely on it — the
+  appearance resolves either through the host page that loads the design
+  system (the primary agent-integration flow) or through the tile's generated
+  **resolved view** (see below) for standalone preview and non-browser tools.
 - **Works offline**: opens by double-click, no server required.
 - **One component per file**: each tile demonstrates one component variant.
 
@@ -69,6 +75,57 @@ Astryx's three-density doc pattern (full / translated / dense). Rules:
 - Agents that already hold the full block skip the dense block; the dense
   surface pays off in multi-component assembly, where several tiles' full meta
   would blow a single context budget.
+
+## Resolved View Companion (optional, generated)
+
+The tile contract guarantees fidelity under **browser rendering**. Some
+consumers — design tools, static analyzers, canvas-based editors — parse HTML
+without a CSS engine and cannot compute layout (geometry, inheritance, page
+chrome). A registry MAY generate a **resolved view** per tile to serve these
+consumers:
+
+- Path: co-located with the tile as `{variant}.resolved.html`
+  (e.g. `infinite/button/default.html` → `infinite/button/default.resolved.html`).
+  `.resolved.html` is a **reserved suffix**: `generate-index.mjs` and
+  `validate-registry.mjs` skip it; it is never a tile. When present,
+  `generate-index.mjs` exposes the path on the tile's index record as
+  `resolvedView`, making appearance a first-class retrieval surface.
+- **Staleness**: each resolved view embeds a SHA-256 stamp of its tile source
+  (`resolved-from: sha256:…`). The validator errors on missing resolved views
+  (when the registry declares `staticView`) and warns on stale ones.
+- Content: the tile's DOM with every element's **computed styles flattened
+  inline** (geometry, colors, borders, spacing, typography), page chrome
+  materialized on a wrapper element, and scripts/styles/links removed. Class
+  names and text content are preserved byte-for-byte.
+- Generation: `node _base/generate-resolved-view.mjs` (run from the registry
+  root; requires `npm i -D puppeteer` in the registry). Configured via
+  `registry.config.json`:
+
+```json
+"staticView": {
+  "css": ["node_modules/@uswds/uswds/dist/css/uswds.min.css"],
+  "viewport": { "width": 1280, "height": 4000 }
+}
+```
+
+- `css` lists stylesheets injected at generation time. This is how registries
+  whose tiles rely on external design-system CSS (the tile-format
+  self-containment exception) still resolve to their true appearance.
+- Resolved views are **generated artifacts**: never hand-edited, never indexed,
+  never counted in facet coverage. Regenerate alongside tile changes.
+- Field-test evidence (openpencil-field-test, 2026-09-22): with resolved views,
+  a third-party design-tool importer produced correct node geometry, fills,
+  and typography for tiles that previously collapsed to default placeholders.
+
+### Class ground-truth check (`staticView.classCheck`)
+
+When `staticView.classCheck` is declared, `validate-registry.mjs` treats the
+`staticView.css` stylesheets as ground truth: every tile-DOM class with the
+configured `prefix` must be **defined by those stylesheets** or appear in the
+`allowlist` with a reason (JS mounts, documented no-ops, registry demo
+classes). Violations are conformance errors. This closes the L9 asymmetry —
+the hallucinated-class discipline that field tests apply to artifacts now
+applies to the registry itself.
 
 ## Metadata Schema Versions
 
