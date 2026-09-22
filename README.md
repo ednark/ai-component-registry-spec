@@ -12,19 +12,29 @@ Think of it as a **base theme** in Drupal: you don't use it directly. You create
 
 ```
 ai-component-registry-spec (this repo — the "base theme")
-    ↑ submodule
+    ↑ submodule (at _base/ in every registry)
     │
-┌───┴──────────────────┐
-│                      │
-uswds-ai-components    forever-ai-components
-(government UI)        (artistic/creative UI)
+┌──────────┬──────────┬──────────┬──────────┬──────────┬──────────────┐
+│          │          │          │          │          │              │
+uswds-     govuk-     dsfr-      ecl-       canada-    drupal-uswds-   forever-ai-components*
+ai-        ai-        ai-        ai-        ai-        ai-
+components components components components components components
+(U.S. Web  (GOV.UK)   (DSFR,     (ECL, EU)  (Canada.   (USWDS on       (origin project,
+Design     (UK)       France)               ca, EN/FR) Drupal)          external,
+System)                                                                           third-party)
+
+* forever-ai-components predates this spec and is conformance-checked, never
+  submoduled. The current registries and their tile counts are listed in
+  `registries.json` (the federated directory) and in each registry's README.
 ```
 
 Each sub-registry:
 1. Adds this repo as a git submodule at `_base/`
 2. Creates a `registry.config.json` declaring its design system, facets, and metadata
-3. Fills its `tileDir` with self-contained HTML component tiles
+3. Fills its `tileDir` with HTML component tiles (structurally self-contained — markup + metadata inline; appearance via the design system or generated resolved views — see tile-format.md)
 4. Runs `_base/generate-index.mjs` to build the discovery index and facets
+5. Gets conformance-certified: `node _base/validate-registry.mjs --conformance .`
+   (passing registries are listed in `registries.json`)
 
 ## What's Included
 
@@ -35,6 +45,7 @@ Each sub-registry:
 | `generate-index.mjs` | Generic, config-driven index generator (normalizes v1 and v2 metadata to a lean, prose-free index) |
 | `registry.config.schema.json` | JSON Schema for validating `registry.config.json` |
 | `validate-registry.mjs` | Registry linter + cross-registry conformance checker |
+| `generate-resolved-view.mjs` | Generates computed-style companions (`{variant}.resolved.html`) for every tile — appearance for design tools and standalone preview (see `tile-format.md`, "Resolved View Companion") |
 | `compliance-scorer.mjs` | Compliance coverage report (FedRAMP/PII/audit/NIST) |
 | `cost-modeler.mjs` | Cheapest-agent-path estimator from costTier metadata |
 | `agents.template.json` | Template for the `agents.json` manifest |
