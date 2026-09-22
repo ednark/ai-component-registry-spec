@@ -56,8 +56,9 @@ Metadata is organized into four processing categories, informed by research on L
 | Category | Processing Mode | Fields |
 |----------|----------------|--------|
 | `discovery` | **Index only** — never sent to the model | `description`, `tier`, `tags`, domain facets |
-| `selection` | **Read before adapting** — helps choose the right component | `useWhen`, `avoidWhen` |
+| `selection` | **Read before adapting** — helps choose the right component | `useWhen`, `avoidWhen`, `guidance` (do/don't pairs) |
 | `instruction` | **Follow** — direct guidance for adaptation | `agentPrompt`, `relatedComponents` |
+| *(optional)* `{agentMetaId}-dense` | **Budget** — token-optimized compression of the full block | `use`, `avoid`, `do`, `dont`, `preserve`, `adapt` |
 | `constraints` | **Enforce** — hard boundaries on adaptation | `preserve`, `editable`, `limitations` |
 
 The generator normalizes both formats into a unified flat index structure for backward compatibility.

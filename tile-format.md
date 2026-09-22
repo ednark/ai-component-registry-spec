@@ -51,6 +51,25 @@ The `agentMetaId` is configurable per registry:
 - `uswds-ai-components` uses `uswds-agent-meta`
 - Your registry can use `your-agent-meta`
 
+### Dense metadata block (optional, token-budgeted)
+
+A tile MAY carry a second block `<script type="application/json"
+id="{agentMetaId}-dense">` containing the same metadata in token-optimized
+form: short strings, no prose duplication, categories flattened. Inspired by
+Astryx's three-density doc pattern (full / translated / dense). Rules:
+
+- The dense block is a *compression* of the full block, never a second source
+  of truth. On any conflict, the full block wins.
+- Required keys: `use`, `avoid`, `do`, `dont` (each a compact string array —
+  `do`/`dont` flatten `selection.guidance` into `true`/`false` groups),
+  `preserve` (string array), `adapt` (the `instruction.agentPrompt`, shortened).
+- Budget: the dense block's JSON must be ≤ 40% of the full block's JSON length
+  (enforced by the validator as a warning). If it exceeds the budget, the
+  registry should trim prose rather than drop required keys.
+- Agents that already hold the full block skip the dense block; the dense
+  surface pays off in multi-component assembly, where several tiles' full meta
+  would blow a single context budget.
+
 ## Metadata Schema Versions
 
 ### Schema v1 (Legacy — flat structure)
@@ -148,6 +167,7 @@ Research on LLM-native markup languages (LLMON) demonstrates that separating ins
 | `discovery` | **Index only** — never sent to the model | Facets for filtering in code |
 | `selection` | **Read before adapting** — helps choose the right component | When to use / avoid this component |
 | `instruction` | **Follow** — direct guidance for adaptation | What the agent should do |
+| `customization` | **Override deliberately** — the declared, typed override surface | Where and how the component may be customized, and what to re-verify |
 | `coordination` | **Plan before composing** — check before combining components | Dependencies, conflicts, cost of composition |
 | `constraints` | **Enforce** — hard boundaries on adaptation | What must/must not change |
 | `portability` | **Translate** — cross-design system mapping | How to adapt to other design systems |
@@ -183,6 +203,12 @@ This ordering prevents "constraint priority inversion" where a less important co
 |-------|------|-------------|
 | `selection.useWhen` | string[] | situations this component is a good fit |
 | `selection.avoidWhen` | string[] | situations to avoid this component |
+| `selection.guidance` | {guidance: boolean, description: string}[] | machine-readable do/don't pairs for *adapting* this component. `guidance: true` = do, `false` = don't. Distinct from `useWhen`/`avoidWhen` (which govern *component choice*): guidance governs *how the placed component behaves* in its context. Entries are binary-labeled so agents can enforce them without prose interpretation. |
+
+Guidance entries carry task-level quality rules that field tests showed agents
+drift on when absent (T5 `t5-001`: relative-only countdowns in time-sensitive
+warnings, opaque commitment actions — see `lessons-learned.md` L11/L12). A
+`false` entry is a prohibition, not a suggestion.
 
 ### Instruction Fields (guide adaptation)
 
@@ -190,6 +216,59 @@ This ordering prevents "constraint priority inversion" where a less important co
 |-------|------|-------------|
 | `instruction.agentPrompt` | string | concrete adaptation instruction |
 | `instruction.relatedComponents` | string[] | commonly paired components |
+
+### Coordination Fields (plan before composing)
+
+### Customization Fields (declared override surface — proposal, additive)
+
+"Agent-ready" and "fully customizable" are usually framed as opposing goals:
+constraints that make generation predictable seem to forbid customization. The
+resolution this spec adopts: **constraints bind what the agent generates;
+customizability is a declared, typed surface the registry hands out.** The two
+cannot fight when every override point is enumerable and every override rung
+carries its own verification obligation. (The framing responds to the common
+critique that agent-ready design systems cannot also be customizable.)
+
+`customization` publishes that surface as the **Override Ladder** — an ordered
+list of sanctioned override layers, most-constrained first:
+
+| Rung | Layer | Meaning | Typical legality |
+|------|-------|---------|------------------|
+| 1 | `variant-class` | switch to an enumerated variant of the component (or a sibling tile's variant) | free, but fetch the target tile first — never guess the class |
+| 2 | `css-var` | override declared design tokens / CSS custom properties | free within declared token vocabulary |
+| 3 | `inline-style` | page-level styling on/around the component (emphasis, spacing, shadow) | free at page level; **never invent `usa-*`-style component classes** (the L3 rule) |
+| 4 | `core-class` | use the registry's untiled core layer for layout/typography | free from `core-classes.json` only |
+| 5 | `fork` | diverge from the component's class vocabulary entirely | **gated**: only with a documented divergence in the registry's provenance record |
+
+Fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `customization.ladder` | {rung: integer, layer: enum, free: boolean, options?, vars?, note?, rule?, source?}[] | the sanctioned override layers for this component, ordered by rung. `layer` ∈ `variant-class` \| `css-var` \| `inline-style` \| `core-class` \| `fork`. `options` enumerates legal variant classes (rung 1); `vars` enumerates legal custom properties (rung 2); `source` names the manifest for core classes (rung 4); `rule` states the gate condition (rung 5). Rungs may be skipped when a layer does not apply to this component. |
+| `customization.verificationAfter` | string[] | checks the agent must re-run after any override (e.g. `constraints.preserve intact`, `coverage zero-invented`, `role/state semantics unchanged`) |
+
+Design rules:
+
+- **Rung legality defers to constraints.** `constraints.preserve` and
+  `portableInvariants` outrank every rung: a rung never licenses changing a
+  preserved element. The ladder routes requests *around* constraints, not
+  through them.
+- **The ladder is per-component, not universal.** A button with build-time
+  token settings may omit rung 2; an alert family with five variants leans on
+  rung 1. Omitting a layer declares that path closed — an agent that needs it
+  climbs to the next rung instead of improvising.
+- **Rung 5 is the registry's answer to swizzle/eject** (Astryx's term): our
+  tiles are already the full component source, so ejection is inherent; the
+  only gate is documentation. Divergence without a provenance record is the
+  failure mode the coverage checker treats as invention.
+- **Context-qualified etiquette (optional).** A registry MAY qualify the
+  ladder per delivery context (static HTML, React wrapper, Drupal theme) via
+  its adapter mechanism: the same component, different override etiquette per
+  consumer. Each etiquette is declared, so customization stays constrained.
+
+This category is additive and optional (schema v2). Absent `customization`,
+agents fall back to the implicit ordering above (variants → tokens → inline →
+core → documented fork).
 
 ### Coordination Fields (plan before composing)
 

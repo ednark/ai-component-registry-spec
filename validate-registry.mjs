@@ -119,6 +119,86 @@ for (const file of tileFiles) {
     }
   }
 
+  // selection.guidance — machine-readable do/don't pairs (schema v2, additive).
+  if (meta.selection?.guidance !== undefined) {
+    if (!Array.isArray(meta.selection.guidance)) {
+      error(`${relPath}: selection.guidance must be an array`);
+    } else {
+      meta.selection.guidance.forEach((g, i) => {
+        if (typeof g !== 'object' || g === null || Array.isArray(g)) {
+          error(`${relPath}: selection.guidance[${i}] must be an object`);
+        } else {
+          if (typeof g.guidance !== 'boolean') error(`${relPath}: selection.guidance[${i}].guidance must be boolean (true=do, false=don't)`);
+          if (typeof g.description !== 'string' || !g.description.trim()) error(`${relPath}: selection.guidance[${i}].description must be a non-empty string`);
+        }
+      });
+    }
+  }
+
+  // customization.ladder — declared override surface (proposal, additive).
+  // Layers mirror tile-format.md "Override Ladder"; rungs defer to constraints.
+  if (meta.customization !== undefined) {
+    const c = meta.customization;
+    if (!Array.isArray(c.ladder)) {
+      error(`${relPath}: customization.ladder must be an array`);
+    } else {
+      const LAYERS = ['variant-class', 'css-var', 'inline-style', 'core-class', 'fork'];
+      const rungs = new Set();
+      c.ladder.forEach((entry, i) => {
+        if (!entry || typeof entry !== 'object') {
+          error(`${relPath}: customization.ladder[${i}] must be an object`);
+          return;
+        }
+        if (!Number.isInteger(entry.rung) || entry.rung < 1) {
+          error(`${relPath}: customization.ladder[${i}].rung must be a positive integer`);
+        } else if (rungs.has(entry.rung)) {
+          error(`${relPath}: customization.ladder duplicate rung ${entry.rung}`);
+        } else {
+          rungs.add(entry.rung);
+        }
+        if (!LAYERS.includes(entry.layer)) {
+          error(`${relPath}: customization.ladder[${i}].layer must be one of: ${LAYERS.join(', ')}`);
+        }
+        if (entry.layer === 'variant-class' && !Array.isArray(entry.options)) {
+          warn(`${relPath}: customization rung ${entry.rung} (variant-class) should enumerate legal options`);
+        }
+        if (entry.layer === 'core-class' && !entry.source) {
+          warn(`${relPath}: customization rung ${entry.rung} (core-class) should name its manifest via "source"`);
+        }
+        if (entry.layer === 'fork' && entry.free !== false && !entry.rule) {
+          warn(`${relPath}: customization rung ${entry.rung} (fork) should be gated — set free:false and a rule`);
+        }
+      });
+    }
+    if (!Array.isArray(c.verificationAfter) || c.verificationAfter.length === 0) {
+      warn(`${relPath}: customization.verificationAfter missing — every rung should name its re-checks`);
+    }
+  }
+
+  // Dense meta block ({agentMetaId}-dense) — optional token-budgeted
+  // compression of the full block (tile-format.md "Dense metadata block").
+  const denseRe = new RegExp(`<script[^>]*id="${agentMetaId}-dense"[^>]*>([\\s\\S]*?)</script>`, 'i');
+  const denseMatch = html.match(denseRe);
+  if (denseMatch) {
+    let dense;
+    try {
+      dense = JSON.parse(denseMatch[1]);
+    } catch (e) {
+      error(`${relPath}: ${agentMetaId}-dense block is not valid JSON: ${e.message}`);
+      dense = null;
+    }
+    if (dense) {
+      for (const key of ['use', 'avoid', 'do', 'dont', 'preserve', 'adapt']) {
+        if (key === 'adapt' ? typeof dense[key] !== 'string' : !Array.isArray(dense[key])) {
+          warn(`${relPath}: dense block missing required key "${key}"`);
+        }
+      }
+      if (denseMatch[1].length > match[1].length * 0.4) {
+        warn(`${relPath}: dense block is ${Math.round(100 * denseMatch[1].length / match[1].length)}% of full block size (budget 40%) — trim prose`);
+      }
+    }
+  }
+
   if (declares.coordination) {
     const c = meta.coordination;
     if (!c) warn(`${relPath}: missing coordination block`);
