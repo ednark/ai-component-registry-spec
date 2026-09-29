@@ -40,7 +40,7 @@ Each sub-registry:
 
 | File | Purpose |
 |------|---------|
-| `protocol.md` | The retrieval protocol spec (5 surfaces: facets, index, tile, recipes, versions — plus flow, constraint handling, adaptation rules) |
+| `protocol.md` | The retrieval protocol spec (6 surfaces: facets, index, tile, recipes, versions, patterns — plus flow, constraint handling, adaptation rules) |
 | `tile-format.md` | HTML tile format with embedded `*-agent-meta` JSON block (supports schema v1 flat and v2 categorized metadata) |
 | `generate-index.mjs` | Generic, config-driven index generator (normalizes v1 and v2 metadata to a lean, prose-free index) |
 | `registry.config.schema.json` | JSON Schema for validating `registry.config.json` |
@@ -52,7 +52,7 @@ Each sub-registry:
 | `llms.template.txt` | Template for `llms.txt` |
 | `catalog.template.json` | Template for `catalog.json` |
 | `mcp/` | Generic Model Context Protocol server — exposes any registry's components as MCP tools (stdio) |
-| `examples/` | Example configs showing how different registries configure the base |
+| `examples/` | Example configs showing how different registries configure the base, plus `pattern-guidance-fixture/` — a minimal registry exercising Surface 6 pattern guidance, tile `tradeoffs`, and gap citation checks |
 
 ## Metadata Schema
 

@@ -26,9 +26,15 @@
       "type": "object",
       "description": "The design system this registry covers",
       "properties": {
-        "name": { "type": "string" },
-        "version": { "type": "string" },
-        "url": { "type": "string" }
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       }
     },
     "agentMetaId": {
@@ -41,7 +47,9 @@
     },
     "facets": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "List of facet field names to aggregate in facets.json"
     },
     "indexSchemaVersion": {
@@ -63,33 +71,54 @@
       "properties": {
         "css": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Stylesheets (paths relative to registry root) injected into every tile at generation time. Use when tiles rely on external design-system CSS."
         },
         "viewport": {
           "type": "object",
           "properties": {
-            "width": { "type": "integer", "default": 1280 },
-            "height": { "type": "integer", "default": 4000 }
+            "width": {
+              "type": "integer",
+              "default": 1280
+            },
+            "height": {
+              "type": "integer",
+              "default": 4000
+            }
           }
         },
         "classCheck": {
           "type": "object",
           "description": "Class ground-truth validation: every tile-DOM class with `prefix` must be defined by the staticView.css stylesheets or allowlisted here (with reason). Catches hallucinated design-system classes.",
           "properties": {
-            "prefix": { "type": "string", "default": "usa-" },
+            "prefix": {
+              "type": "string",
+              "default": "usa-"
+            },
             "allowlist": {
               "type": "array",
               "items": {
                 "oneOf": [
-                  { "type": "string" },
+                  {
+                    "type": "string"
+                  },
                   {
                     "type": "object",
                     "properties": {
-                      "class": { "type": "string" },
-                      "reason": { "type": "string", "description": "Why this class is exempt (JS mount, documented no-op, registry demo class)" }
+                      "class": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "description": "Why this class is exempt (JS mount, documented no-op, registry demo class)"
+                      }
                     },
-                    "required": ["class", "reason"]
+                    "required": [
+                      "class",
+                      "reason"
+                    ]
                   }
                 ]
               }
@@ -108,17 +137,23 @@
     },
     "additionalFields": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Non-standard fields included in each tile's metadata"
     },
     "govCompliance": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Government compliance standards this registry supports"
     },
     "supportedDesignSystems": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Design systems that have classMapping entries in this registry's tiles (e.g., ['material', 'bootstrap'])"
     },
     "adapterBase": {
@@ -146,13 +181,17 @@
         },
         "transport": {
           "type": "string",
-          "enum": ["stdio"],
+          "enum": [
+            "stdio"
+          ],
           "description": "Transport supported by the server",
           "default": "stdio"
         },
         "tools": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Tool names exposed by the server",
           "default": [
             "search_components",
@@ -170,15 +209,55 @@
     },
     "gaps": {
       "type": "array",
-      "description": "Declared component-concept gaps: design-system components or patterns this registry intentionally does not tile, with the nearest available alternative. Agents query this instead of inferring from absence.",
+      "description": "Declared component-concept gaps: design-system components or patterns this registry intentionally does not tile, with the nearest available alternative. Agents query this instead of inferring from absence. Doctrine-backed omissions (status not_part_of_design_system) must cite source and state consequence — the registry records doctrine with sources, it never authors it.",
       "items": {
         "type": "object",
-        "required": ["concept", "status", "reason"],
+        "required": [
+          "concept",
+          "status",
+          "reason"
+        ],
         "properties": {
-          "concept": { "type": "string", "description": "Component concept name (e.g. combobox, card, mega-menu)" },
-          "status": { "type": "string", "enum": ["not_part_of_design_system", "deferred"], "description": "not_part_of_design_system = doctrine/pattern, do not invent; deferred = candidate for a future tile" },
-          "nearestAlternative": { "type": "string", "description": "Tiled family or recipe to use instead" },
-          "reason": { "type": "string" }
+          "concept": {
+            "type": "string",
+            "description": "Component concept name (e.g. combobox, card, mega-menu)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_part_of_design_system",
+              "deferred"
+            ],
+            "description": "not_part_of_design_system = doctrine/pattern, do not invent; deferred = candidate for a future tile"
+          },
+          "nearestAlternative": {
+            "type": "string",
+            "description": "Tiled family or recipe to use instead"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "consequence": {
+            "type": "string",
+            "description": "What an implementing agent must do instead, as an instruction-shaped consequence (e.g. 'do NOT add a page-level error summary; field-level messaging is the sanctioned pattern'). Required when status is not_part_of_design_system."
+          },
+          "source": {
+            "type": "string",
+            "description": "Where the design system documents this omission (URL or citation). Required when status is not_part_of_design_system: the registry records doctrine with sources, it never authors it."
+          }
+        },
+        "if": {
+          "properties": {
+            "status": {
+              "const": "not_part_of_design_system"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "consequence",
+            "source"
+          ]
         }
       }
     },
@@ -188,10 +267,12 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
-          "description": { "type": "string" },
+          "description": {
+            "type": "string"
+          },
           "tokenOverrides": {
             "type": "object",
-            "description": "Token name → override value applied when this profile is active"
+            "description": "Token name \u2192 override value applied when this profile is active"
           }
         }
       }
@@ -199,6 +280,14 @@
     "updated": {
       "type": "string",
       "description": "Version string for the registry"
+    },
+    "behaviorContract": {
+      "type": "boolean",
+      "description": "When true, validate-registry.mjs enforces instruction.behavior on every tile whose requiresJs is required or optional (tile-format.md Behavior Fields)."
+    },
+    "patternGuidance": {
+      "type": "boolean",
+      "description": "When true, the registry publishes Surface 6 pattern guidance (protocol.md): generate-index.mjs emits patterns/index.json and normalizes discovery.patterns into index records; validate-registry.mjs enforces pattern-file rules (required citations, cross-references to real tiles/recipes). Task-to-component-set guidance only — never page design."
     }
   }
 }

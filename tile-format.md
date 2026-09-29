@@ -159,6 +159,12 @@ Metadata is organized into categories based on how the agent should process each
     ]
   },
 
+  "tradeoffs": {
+    "sacrifices": [
+      { "capability": "loading states", "because": "pending indication belongs to the host application; the tile stays a static starting point" }
+    ]
+  },
+
   "instruction": {
     "agentPrompt": "Change button text, add variant classes like usa-button--secondary.",
     "relatedComponents": ["button-group", "link"]
@@ -223,6 +229,7 @@ Research on LLM-native markup languages (LLMON) demonstrates that separating ins
 |----------|----------------|---------|
 | `discovery` | **Index only** — never sent to the model | Facets for filtering in code |
 | `selection` | **Read before adapting** — helps choose the right component | When to use / avoid this component |
+| `tradeoffs` | **Read before selecting** — explains deliberate design | Capabilities the component gives up on purpose, so agents don't treat design decisions as defects |
 | `instruction` | **Follow** — direct guidance for adaptation | What the agent should do |
 | `customization` | **Override deliberately** — the declared, typed override surface | Where and how the component may be customized, and what to re-verify |
 | `coordination` | **Plan before composing** — check before combining components | Dependencies, conflicts, cost of composition |
@@ -253,6 +260,7 @@ This ordering prevents "constraint priority inversion" where a less important co
 | `discovery.description` | string | one-line summary |
 | `discovery.tier` | string | quality tier (e.g., `curated`, `needs-review`) |
 | `discovery.tags` | string[] | semantic search keywords |
+| `discovery.patterns` | string[] | pattern names (protocol.md Surface 6) this component participates in. Normalized into the index like `compositionRecipes` so pattern members are filterable in code. |
 
 ### Selection Fields (help agent choose the right component)
 
@@ -267,12 +275,81 @@ drift on when absent (T5 `t5-001`: relative-only countdowns in time-sensitive
 warnings, opaque commitment actions — see `lessons-learned.md` L11/L12). A
 `false` entry is a prohibition, not a suggestion.
 
+### Trade-off Fields (deliberate design, recorded as data)
+
+Optional block recording what the component gives up **on purpose**. Without
+it, agents read a deliberate sacrifice as a defect and "helpfully" work around
+it or substitute another component — the cross-registry mistranslation class
+documented in field tests (L7: DSFR and Canada omit page-level error summaries
+by design; an agent translating a USWDS form page adds one anyway).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tradeoffs.sacrifices` | {capability, because}[] | capabilities this component deliberately does not provide, each with the design reason |
+| `tradeoffs.note` | string | optional pointer to the design-system documentation this trade-off traces to |
+
+```json
+"tradeoffs": {
+  "sacrifices": [
+    { "capability": "in-place editing", "because": "summary-list rows link to dedicated change pages instead — one trust pattern per journey" }
+  ]
+}
+```
+
+Rules:
+
+- `because` is required on every entry — an omission without a stated reason
+  is a gap, not a trade-off (validator-enforced). Registry-level omissions
+  (whole concepts the design system intentionally does not tile) are declared
+  in `registry.config.json` `gaps` with `status: not_part_of_design_system` —
+  one concept, one name; this block records component-level trade-offs only.
+- Sacrifices record the design system's decision, not the registry author's
+  preference. When the reason traces to documentation, cite it in `note`.
+- **Index leanness rule:** `tradeoffs` never enters the discovery index; it
+  travels in the tile like all prose enrichment.
+
 ### Instruction Fields (guide adaptation)
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `instruction.agentPrompt` | string | concrete adaptation instruction |
 | `instruction.relatedComponents` | string[] | commonly paired components |
+
+### Behavior Fields (make the placed component work)
+
+A `requiresJs: required` index record is a *promise the tile must keep*.
+Field tests (federal-anchor-test, 2026-09-27) showed the family-wide failure
+mode: tiles ship markup + metadata but no behavior contract, so an agent that
+follows the retrieval flow correctly can still only render inert components.
+The registry's obligation ends at publishing a complete, truthful contract;
+**acting on it is the implementor's job.**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `instruction.behavior` | object | the behavior contract for interactive components. Required whenever the index record declares `requiresJs: required` or `optional`. Present but minimal (`requires: "none"` may be omitted entirely) for passive components. |
+| `instruction.behavior.requires` | enum | `required` \| `optional` — mirrors the index `requiresJs` facet; the tile-local value wins on conflict |
+| `instruction.behavior.source` | enum | where the implementing agent gets the behavior: `host` — the design system's own JS bundle, which the host page is expected to load in the primary agent-integration flow; `inline` — a dependency-free `<script>` the tile itself carries after the agent-meta block; `url` — an explicit script URL |
+| `instruction.behavior.script` | string | with `source: url`, the script URL; with `source: host`, the design-system bundle the host page must load (e.g. `uswds.min.js`) |
+| `instruction.behavior.init` | string | the activation contract — e.g. `auto (DOMContentLoaded)`, or an entry point/selector the implementor must call after insertion |
+| `instruction.behavior.fallback` | string | the documented no-JS rendering the implementor must preserve when JS is genuinely unavailable (e.g. `static-expanded, content visible`) |
+
+Rules:
+
+- **Details travel in the tile, never the index** — the index keeps only the
+  lean `requiresJs` facet; discovery stays filterable, enrichment stays
+  one-fetch (same rule as all prose).
+- **`source: inline` scripts are part of the tile's self-containment
+  guarantee** and must be dependency-free and copyable verbatim.
+- **The contract must be truthful**: a tile that renders functional only
+  with design-system JS must not claim `source: inline`.
+- **Single-handling rule**: when the implementor wires a behavior's
+  `source: host`/`url` bundle and the bundle already implements a component
+  that also carries an `inline` script, the inline script must be omitted —
+  never double-register handlers on the same control (federal-anchor-test
+  2026-09-27: banner disclosure double-toggle when both were wired).
+- Validator hook: `validate-registry.mjs` should error on any index record
+  with `requiresJs ∈ {required, optional}` whose tile lacks
+  `instruction.behavior`.
 
 ### Coordination Fields (plan before composing)
 

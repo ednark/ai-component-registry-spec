@@ -16,6 +16,7 @@ components.index.json (lean — one record per component, no prose)
 <component>.html       (heavy — full source + embedded adaptation metadata)
 
 recipes/{name}.json   (on demand — one atomic pattern fetch)
+patterns/{name}.json  (on demand — one task-to-component-set guidance fetch)
 versions.json         (on demand — what changed and how to migrate)
 ```
 
@@ -128,6 +129,76 @@ Version-history rules:
 - Registries without meaningful versioning may omit this surface; MCP
   `get_versions` returns `available: false` (the probe never fails)
 
+### Surface 6: `patterns/{name}.json` — pattern guidance (optional)
+
+Recipes (Surface 4) answer "which components combine." **Patterns** answer
+"which components and doctrine apply to this task" — task-to-component-set
+guidance, the slot the `agents.json` "Patterns" entry already reserves.
+
+Patterns are retrieval direction for a page designer, **not page design**.
+The registry's obligation ends at pointing: page structure, sequence, and
+quality judgment remain the implementor's job — the same boundary the
+behavior contract draws for tiles.
+
+**The lane rule (normative):** every substantive claim in a pattern file is a
+citation. `doctrine` entries cite design-system documentation;
+`knownFailureModes` cite field-test runs; `mandatedElements` cite the legal
+or policy source. A pattern file never authors cadence, page structure, or
+quality checklists — if a design system documents a sequence for a pattern,
+it arrives as a quoted, sourced doctrine note. The validator rejects
+uncited claims.
+
+```
+GET {base}/infinite/patterns/index.json      → pattern manifest (names + descriptions)
+GET {base}/infinite/patterns/{pattern}.json  → one pattern
+```
+
+A pattern is a static JSON file alongside the tiles:
+
+```json
+{
+  "pattern": "time-sensitive-action",
+  "description": "Task guidance for acting before a user-facing deadline",
+  "useWhen": ["the user must act before a deadline", "an expiry or cutoff drives the task"],
+  "avoidWhen": ["the deadline is not user-facing"],
+  "components": ["alert", "button", "summary-list"],
+  "recipes": ["trial-expiry-banner"],
+  "doctrine": [
+    { "source": "USWDS time-sensitive-warning guidance", "url": "https://designsystem.digital.gov/patterns/", "note": "state dates in absolute terms" }
+  ],
+  "knownFailureModes": [
+    { "run": "task-usability/runs/t5-001", "lesson": "L11", "note": "relative-only countdown drifted in across turns 0–2" }
+  ],
+  "mandatedElements": [
+    { "name": "date-modified", "jurisdictions": ["canada"], "source": "Standard on Web Accessibility", "note": "legally required page element with no component equivalent" }
+  ]
+}
+```
+
+Pattern rules:
+
+- **Task-to-component-set only.** `components` names tile families and
+  `recipes` names Surface 4 recipes; both must reference real entries in the
+  same registry. No ordering, nesting, or placement instruction belongs in a
+  pattern file — that is a recipe's job or the implementor's.
+- **Citations required.** Every `doctrine[]` and `mandatedElements[]` entry
+  carries a `source`; every `knownFailureModes[]` entry carries a `run`
+  (field-test evidence — measured failures, not design opinion).
+- Components listed in a pattern must declare the pattern in their tile's
+  `discovery.patterns` so facet filtering finds pattern members (mirror of
+  the recipe rule).
+- `useWhen`/`avoidWhen` govern *task* match (pattern-level selection), the
+  same distinction `selection.useWhen`/`avoidWhen` makes for component choice.
+- Patterns are discovery surfaces: keep them lean (no component source inline).
+- **Config-gated:** a registry publishes this surface only by declaring
+  `patternGuidance: true` in `registry.config.json`. `generate-index.mjs`
+  emits `patterns/index.json` and normalizes `discovery.patterns` into index
+  records; `validate-registry.mjs` enforces the rules above only for
+  registries that declare it. A registry that does not declare it sees zero
+  new surfaces.
+- MCP servers MAY expose `get_pattern`; it is optional and not required for
+  conformance.
+
 ## The Retrieval Flow
 
 ```
@@ -159,6 +230,8 @@ Retrieve coordinated sets, not single components. When the task is a page or lay
 
 When the task matches a published recipe (Surface 4), fetch the recipe first — it replaces N component lookups plus assembly guesswork with one atomic fetch. Check `coordination.compositionRecipes` in the index (or the recipe manifest) before composing manually. If composing without a recipe, respect each tile's `coordination.prerequisiteComponents` and `coordination.incompatibleWith`.
 
+When the task matches a published pattern (Surface 6), fetch the pattern first for its component set and cited doctrine. Patterns supply task-level *selection* guidance — which components other builds used for this task and what the design system documents about it. Recipes remain the atomic *assembly* instruction; patterns never prescribe page structure, sequence, or quality standards.
+
 ## Adaptation Rules
 
 When adapting a retrieved component:
@@ -183,6 +256,7 @@ The embedded metadata uses a categorized structure (schema v2) that separates me
 |----------|--------|----------------|
 | `discovery` | `description`, `tier`, `tags`, domain facets | **Filter in code** — do not send to model |
 | `selection` | `useWhen`, `avoidWhen` | **Read before adapting** — confirms component choice |
+| `tradeoffs` | `sacrifices` | **Read before selecting** — explains deliberate design so agents don't treat it as a defect |
 | `instruction` | `agentPrompt`, `relatedComponents` | **Follow** — direct guidance for what to do |
 | `coordination` | `prerequisiteComponents`, `incompatibleWith`, `compositionCost`, `agentPromptSequence` | **Plan before composing** — check before combining components |
 | `constraints` | `preserve`, `editable`, `limitations` | **Enforce** — hard boundaries on changes |
@@ -239,7 +313,7 @@ Recommended section order:
    registry's declared `gaps` (registry.config.json) and core-classes.json
    (the untiled layout/typography layer)
 5. **Component schema** — what an index record and a tile meta block contain
-6. **Patterns** — task-to-component-set guidance or a pointer to recipes
+6. **Patterns** — task-to-component-set guidance (Surface 6, `patterns/`) or a pointer to recipes
 7. **Output contract** — the registry's contract from the Output Contract
    section
 
