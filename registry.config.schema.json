@@ -276,7 +276,7 @@
           },
           "tokenOverrides": {
             "type": "object",
-            "description": "Token name \u2192 override value applied when this profile is active"
+            "description": "Token name → override value applied when this profile is active"
           }
         }
       }
@@ -292,6 +292,13 @@
     "patternGuidance": {
       "type": "boolean",
       "description": "When true, the registry publishes Surface 6 pattern guidance (protocol.md): generate-index.mjs emits patterns/index.json and normalizes discovery.patterns into index records; validate-registry.mjs enforces pattern-file rules (required citations, cross-references to real tiles/recipes). Task-to-component-set guidance only — never page design."
+    },
+    "modifierSeparators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Modifier separators this design system uses (longest first, e.g. [\"--\", \"__\", \"-\"]). Consumed by analysis tooling (e.g. detect-convergence.mjs) to canonicalize class spellings before grouping. See protocol.md Design-System Version Sync and Surface 7."
     }
   }
 }
