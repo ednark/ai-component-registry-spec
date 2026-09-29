@@ -8,6 +8,7 @@
  * and regenerates:
  *   - {tileDir}/components.index.json
  *   - {tileDir}/facets.json
+ *   - {tileDir}/patterns/index.json (when the registry declares patternGuidance)
  *
  * Supports both metadata schema v1 (flat) and v2 (categorized):
  *   - v1: all fields at top level (legacy)
@@ -147,6 +148,15 @@ function normalizeV2ToFlat(meta) {
     flat.supportedTokenProfiles = meta.supportedTokenProfiles;
   }
 
+  // Surface 6: pattern membership is a lean name-list — index-normalized when
+  // the registry declares patternGuidance, tile-only otherwise (protocol.md
+  // Surface 6: task-to-component-set guidance, citations live in the pattern file).
+  if (config.patternGuidance && Array.isArray(meta.discovery?.patterns)) {
+    flat.patterns = meta.discovery.patterns;
+  } else {
+    delete flat.patterns;
+  }
+
   // Selection: useWhen/avoidWhen are prose and live in the tile only.
   // Agents read them from the tile after selecting it.
 
@@ -240,9 +250,9 @@ function buildFacetForField(components, field) {
   return counts;
 }
 
-function buildAllFacets(components) {
+function buildAllFacets(components, fields) {
   const facets = {};
-  for (const field of configuredFacets) {
+  for (const field of fields) {
     const counts = buildFacetForField(components, field);
     if (Object.keys(counts).length > 0) {
       facets[field] = counts;
@@ -316,9 +326,14 @@ function generate() {
 
   console.log(`\nSchema versions: ${v1Count} v1, ${v2Count} v2`);
 
-  // Build facets
+  // Build facets — Surface 6: pattern membership is facet-filterable whenever
+  // the registry declares patternGuidance, even if "patterns" is not listed
+  // in config.facets.
   console.log('\nBuilding facets...');
-  const facets = buildAllFacets(components);
+  const facetFields = config.patternGuidance && !configuredFacets.includes('patterns')
+    ? [...configuredFacets, 'patterns']
+    : configuredFacets;
+  const facets = buildAllFacets(components, facetFields);
 
   // Build counts
   const counts = {
@@ -357,6 +372,38 @@ function generate() {
 
   writeFileSync(FACETS_FILE, JSON.stringify(facetsJson, null, 2));
   console.log(`  ✓ ${FACETS_FILE}`);
+
+  // Surface 6: emit the pattern manifest from the pattern directory.
+  // The manifest is generated (unlike the hand-maintained recipe manifest):
+  // pattern files are the source of truth; the manifest is their index.
+  if (config.patternGuidance) {
+    const patternsDir = join(TILE_DIR, 'patterns');
+    if (existsSync(patternsDir)) {
+      const patterns = [];
+      for (const item of readdirSync(patternsDir)) {
+        if (!item.endsWith('.json') || item === 'index.json') continue;
+        try {
+          const p = JSON.parse(readFileSync(join(patternsDir, item), 'utf-8'));
+          patterns.push({
+            pattern: p.pattern || item.replace(/\.json$/, ''),
+            description: p.description || '',
+          });
+        } catch (e) {
+          console.warn(`  Warning: patterns/${item} is not valid JSON — skipped from manifest`);
+        }
+      }
+      const patternsJson = {
+        schemaVersion: 1,
+        generatedBy: '_base/generate-index.mjs',
+        count: patterns.length,
+        patterns,
+      };
+      writeFileSync(join(patternsDir, 'index.json'), JSON.stringify(patternsJson, null, 2));
+      console.log(`  ✓ ${join(patternsDir, 'index.json')} (${patterns.length} patterns)`);
+    } else {
+      console.log('  ℹ patternGuidance declared but no patterns/ directory — pattern manifest skipped');
+    }
+  }
 
   console.log(`\nDone! Generated index with ${components.length} components`);
 }

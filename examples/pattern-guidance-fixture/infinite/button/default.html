@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Button (Default)</title>
+  <script type="application/json" id="fixture-agent-meta">
+  {
+    "file": "button/default.html",
+    "title": "Button (Default)",
+    "_schemaVersion": 2,
+    "discovery": {
+      "description": "Primary button for important actions.",
+      "patterns": ["time-sensitive-action"]
+    },
+    "selection": {
+      "useWhen": ["Primary actions that advance a task"],
+      "avoidWhen": ["Navigation between pages"]
+    },
+    "instruction": {
+      "agentPrompt": "Change the button label text."
+    },
+    "constraints": {
+      "preserve": ["btn-base"],
+      "editable": ["Label text"],
+      "limitations": []
+    },
+    "tradeoffs": {
+      "sacrifices": [
+        { "capability": "loading states", "because": "pending indication belongs to the host application" }
+      ]
+    }
+  }
+  </script>
+</head>
+<body>
+  <button class="btn-base">Save</button>
+</body>
+</html>

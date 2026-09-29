@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "metadataSchemaVersion": 1,
+  "generatedBy": "_base/generate-index.mjs",
+  "total": 3,
+  "facets": {
+    "patterns": {
+      "time-sensitive-action": 3
+    }
+  }
+}

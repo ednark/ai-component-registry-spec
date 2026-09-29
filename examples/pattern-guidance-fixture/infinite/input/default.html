@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Text Input (Default)</title>
+  <script type="application/json" id="fixture-agent-meta">
+  {
+    "file": "input/default.html",
+    "title": "Text Input (Default)",
+    "_schemaVersion": 2,
+    "discovery": {
+      "description": "A text input.",
+      "patterns": ["time-sensitive-action"]
+    },
+    "selection": {
+      "useWhen": ["Free-text entry"],
+      "avoidWhen": ["Structured choices"]
+    },
+    "instruction": {
+      "agentPrompt": "Change the label text."
+    },
+    "constraints": {
+      "preserve": ["input-base"],
+      "editable": ["Label text"],
+      "limitations": []
+    }
+  }
+  </script>
+</head>
+<body>
+  <label for="f">Field</label><input class="input-base" id="f">
+</body>
+</html>

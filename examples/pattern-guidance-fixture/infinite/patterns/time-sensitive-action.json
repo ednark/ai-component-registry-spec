@@ -1,0 +1,16 @@
+{
+  "pattern": "time-sensitive-action",
+  "description": "Task guidance for acting before a user-facing deadline",
+  "useWhen": ["the user must act before a deadline", "an expiry or cutoff drives the task"],
+  "avoidWhen": ["the deadline is not user-facing"],
+  "components": ["button", "card"],
+  "doctrine": [
+    { "source": "Design-system time-sensitive-warning guidance (citation fixture)", "note": "state dates in absolute terms" }
+  ],
+  "knownFailureModes": [
+    { "run": "task-usability/runs/t5-001", "lesson": "L11", "note": "relative-only countdown drifted in across turns 0–2" }
+  ],
+  "mandatedElements": [
+    { "name": "date-modified", "source": "Standard on Web Accessibility (citation fixture)", "note": "legally required page element with no component equivalent" }
+  ]
+}

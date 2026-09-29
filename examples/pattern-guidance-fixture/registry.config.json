@@ -1,0 +1,20 @@
+{
+  "name": "pattern-guidance-fixture",
+  "description": "Minimal fixture exercising Surface 6 pattern guidance, tile tradeoffs, and gap citation checks (validate-registry.mjs / generate-index.mjs)",
+  "agentMetaId": "fixture-agent-meta",
+  "tileDir": "infinite",
+  "facets": [],
+  "indexSchemaVersion": 1,
+  "repo": "https://example.com/pattern-guidance-fixture",
+  "base": "https://example.com/pattern-guidance-fixture",
+  "patternGuidance": true,
+  "gaps": [
+    {
+      "concept": "error-summary",
+      "status": "not_part_of_design_system",
+      "reason": "inline errors only",
+      "consequence": "Do not add a page-level error summary; errors surface inline per field",
+      "source": "Design-system form guidance (citation fixture)"
+    }
+  ]
+}

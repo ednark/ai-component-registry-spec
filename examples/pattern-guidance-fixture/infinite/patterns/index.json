@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "_base/generate-index.mjs",
+  "count": 1,
+  "patterns": [
+    {
+      "pattern": "time-sensitive-action",
+      "description": "Task guidance for acting before a user-facing deadline"
+    }
+  ]
+}

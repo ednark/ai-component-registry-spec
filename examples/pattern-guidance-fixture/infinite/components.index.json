@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "metadataSchemaVersion": 1,
+  "generatedBy": "_base/generate-index.mjs",
+  "counts": {
+    "total": 3
+  },
+  "components": [
+    {
+      "file": "button/default.html",
+      "title": "Button (Default)",
+      "_schemaVersion": 2,
+      "description": "Primary button for important actions.",
+      "patterns": [
+        "time-sensitive-action"
+      ]
+    },
+    {
+      "file": "card/default.html",
+      "title": "Card (Default)",
+      "_schemaVersion": 2,
+      "description": "A content card.",
+      "patterns": [
+        "time-sensitive-action"
+      ]
+    },
+    {
+      "file": "input/default.html",
+      "title": "Text Input (Default)",
+      "_schemaVersion": 2,
+      "description": "A text input.",
+      "patterns": [
+        "time-sensitive-action"
+      ]
+    }
+  ]
+}

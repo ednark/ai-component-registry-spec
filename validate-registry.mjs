@@ -6,8 +6,11 @@
  *   - registry.config.json required fields
  *   - tile agent-meta blocks parse as JSON
  *   - required metadata presence (warning-level unless the registry declares it)
- *   - dangling references (relatedComponents, coordination, recipes)
+ *   - dangling references (relatedComponents, coordination, recipes, patterns)
  *   - recipe component files exist
+ *   - pattern files: citations required, task-to-component-set only (Surface 6)
+ *   - tile tradeoffs.sacrifices carry reasons (deliberate design, not defects)
+ *   - doctrine-backed gaps carry consequence + source
  *   - index freshness + facet coverage
  *   - index size budget (leanness rule)
  *
@@ -241,6 +244,55 @@ for (const file of tileFiles) {
     }
   }
 
+  // tradeoffs.sacrifices — deliberate design recorded as data (tile-format.md
+  // "Trade-off Fields"). An omission without a stated reason is a gap, not a
+  // trade-off: agents that read an undocumented sacrifice "fix" deliberate
+  // design or substitute another component (field-test L7 mistranslation class).
+  if (meta.tradeoffs !== undefined) {
+    const t = meta.tradeoffs;
+    if (!Array.isArray(t.sacrifices)) {
+      error(`${relPath}: tradeoffs.sacrifices must be an array`);
+    } else {
+      t.sacrifices.forEach((s, i) => {
+        if (!s || typeof s !== 'object' || Array.isArray(s)) {
+          error(`${relPath}: tradeoffs.sacrifices[${i}] must be an object`);
+          return;
+        }
+        if (typeof s.capability !== 'string' || !s.capability.trim()) {
+          error(`${relPath}: tradeoffs.sacrifices[${i}].capability must be a non-empty string`);
+        }
+        if (typeof s.because !== 'string' || !s.because.trim()) {
+          error(`${relPath}: tradeoffs.sacrifices[${i}].because missing — an omission without a stated reason is a gap, not a trade-off`);
+        }
+      });
+    }
+  }
+
+  // instruction.behavior — the behavior contract (tile-format.md "Behavior
+  // Fields"). A requiresJs: required/optional index record is a promise the
+  // tile must keep: when the registry declares behaviorContract, interactive
+  // tiles must publish a truthful contract the implementor can act on.
+  if (config.behaviorContract) {
+    const tileRequires = meta.discovery?.requiresJs ?? meta.requiresJs;
+    const behavior = meta.instruction?.behavior;
+    if (tileRequires === 'required' || tileRequires === 'optional') {
+      if (!behavior || typeof behavior !== 'object') {
+        error(`${relPath}: requiresJs "${tileRequires}" but no instruction.behavior contract (tile-format.md Behavior Fields)`);
+      } else {
+        if (behavior.requires !== tileRequires) error(`${relPath}: behavior.requires "${behavior.requires}" != tile requiresJs "${tileRequires}"`);
+        if (!['host', 'inline', 'url'].includes(behavior.source)) error(`${relPath}: behavior.source must be one of: host, inline, url`);
+        if (behavior.source === 'url' && typeof behavior.script !== 'string') error(`${relPath}: behavior.source "url" needs a script URL`);
+        if (behavior.source === 'host' && typeof behavior.script !== 'string') error(`${relPath}: behavior.source "host" needs the design-system bundle name`);
+        if (typeof behavior.init !== 'string' || !behavior.init.trim()) error(`${relPath}: behavior.init missing — the activation contract is required`);
+        if (typeof behavior.fallback !== 'string' || !behavior.fallback.trim()) error(`${relPath}: behavior.fallback missing — the no-JS rendering must be documented`);
+        if (behavior.source === 'inline') {
+          const behaviorScripts = html.match(/<script(?![^>]*application\/json)[^>]*>[\s\S]*?<\/script>/gi) || [];
+          if (!behaviorScripts.length) error(`${relPath}: behavior.source "inline" but the tile carries no behavior <script>`);
+        }
+      }
+    }
+  }
+
   // Dense meta block ({agentMetaId}-dense) — optional token-budgeted
   // compression of the full block (tile-format.md "Dense metadata block").
   const denseRe = new RegExp(`<script[^>]*id="${agentMetaId}-dense"[^>]*>([\\s\\S]*?)</script>`, 'i');
@@ -285,9 +337,9 @@ for (const file of tileFiles) {
 
 // --- 3. Recipes ---
 
+const declaredRecipeNames = new Set();
 const recipesDir = join(TILE_DIR, 'recipes');
 if (existsSync(recipesDir)) {
-  const declaredRecipeNames = new Set();
   for (const item of readdirSync(recipesDir)) {
     if (!item.endsWith('.json') || item === 'index.json') continue;
     let recipe;
@@ -365,6 +417,114 @@ if (Array.isArray(config.gaps)) {
       error(`gaps: ${gap.concept || '?'} has invalid status "${gap.status}"`);
     }
     if (!gap.reason) warn(`gaps: ${gap.concept || '?'} missing reason`);
+    // Doctrine-backed omissions must cite their source and state the
+    // instruction-shaped consequence (registry.config.schema.json if/then).
+    // The registry records doctrine with sources; it never authors it.
+    if (gap.status === 'not_part_of_design_system') {
+      if (!gap.consequence) error(`gaps: ${gap.concept} (not_part_of_design_system) missing "consequence" — an omission without a stated consequence is an undeclared gap`);
+      if (!gap.source) error(`gaps: ${gap.concept} (not_part_of_design_system) missing "source" — the registry may only point, never assert`);
+    }
+  }
+}
+
+// --- Surface 6: pattern guidance (optional, config-gated) ---
+// Task-to-component-set guidance with citations only — the lane rule
+// (protocol.md Surface 6). The registry points; the implementor designs.
+const patternsDir = join(TILE_DIR, 'patterns');
+const patternsDeclared = config.patternGuidance === true;
+const patternsOnDisk = existsSync(patternsDir);
+if (patternsOnDisk && !patternsDeclared) {
+  warn('patterns/ directory exists but registry.config.json does not declare patternGuidance: true — Surface 6 is not published');
+}
+if (patternsDeclared && !patternsOnDisk) {
+  warn('patternGuidance: true but no patterns/ directory — publish one pattern file or unset the flag');
+}
+if (patternsOnDisk) {
+  const declaredPatternNames = new Set();
+  for (const item of readdirSync(patternsDir)) {
+    if (!item.endsWith('.json') || item === 'index.json') continue;
+    let pattern;
+    try {
+      pattern = JSON.parse(readFileSync(join(patternsDir, item), 'utf-8'));
+    } catch (e) {
+      error(`patterns/${item}: invalid JSON: ${e.message}`);
+      continue;
+    }
+    if (!pattern.pattern) error(`patterns/${item}: missing "pattern" name`);
+    declaredPatternNames.add(pattern.pattern);
+    if (pattern.pattern && pattern.pattern !== item.replace(/\.json$/, '')) {
+      warn(`patterns/${item}: file name does not match pattern name "${pattern.pattern}"`);
+    }
+    if (!pattern.description) warn(`patterns/${item}: missing description`);
+    for (const key of ['useWhen', 'avoidWhen']) {
+      if (!Array.isArray(pattern[key])) error(`patterns/${item}: missing "${key}" array`);
+      else if (pattern[key].some((s) => typeof s !== 'string' || !s.trim())) {
+        error(`patterns/${item}: ${key} entries must be non-empty strings`);
+      }
+    }
+
+    // Cross-references: components and recipes must exist in this registry.
+    for (const name of pattern.components || []) {
+      if (!componentDirs.has(name)) error(`patterns/${item}: references unknown component "${name}"`);
+    }
+    for (const name of pattern.recipes || []) {
+      if (declaredRecipeNames.size && !declaredRecipeNames.has(name)) {
+        error(`patterns/${item}: references unknown recipe "${name}"`);
+      }
+    }
+
+    // Citation enforcement — the lane rule. Every claim is a citation:
+    // doctrine → design-system source, failure modes → field-test run,
+    // mandated elements → legal/policy source.
+    for (const [key, citeKey, label] of [
+      ['doctrine', 'source', 'design-system source'],
+      ['mandatedElements', 'source', 'legal/policy source'],
+      ['knownFailureModes', 'run', 'field-test run'],
+    ]) {
+      (pattern[key] || []).forEach((entry, i) => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+          error(`patterns/${item}: ${key}[${i}] must be an object`);
+          return;
+        }
+        if (typeof entry[citeKey] !== 'string' || !entry[citeKey].trim()) {
+          error(`patterns/${item}: ${key}[${i}] missing "${citeKey}" (${label}) — the registry may only point, never assert`);
+        }
+      });
+    }
+
+    // Lane enforcement: pattern files are task-to-component-set guidance.
+    // Any key that prescribes page structure, sequence, or quality standards
+    // is page design and belongs to the implementor, not the registry.
+    const OUT_OF_LANE = ['cadence', 'nesting', 'sequence', 'steps', 'order', 'layout', 'placement', 'pageStructure', 'definitionOfDone', 'validationOrder'];
+    for (const key of OUT_OF_LANE) {
+      if (pattern[key] !== undefined) {
+        error(`patterns/${item}: "${key}" is out of lane — pattern files are task-to-component-set guidance only (protocol.md Surface 6)`);
+      }
+    }
+  }
+  if (patternsDeclared && !existsSync(join(patternsDir, 'index.json'))) {
+    warn('patterns/index.json manifest missing — run generate-index.mjs');
+  }
+  if (existsSync(join(patternsDir, 'index.json'))) {
+    try {
+      const manifest = JSON.parse(readFileSync(join(patternsDir, 'index.json'), 'utf-8'));
+      for (const p of manifest.patterns || []) {
+        const pname = p.pattern || p.name;
+        if (!existsSync(join(patternsDir, `${pname}.json`))) error(`patterns/index.json: ${pname} has no pattern file`);
+      }
+    } catch (e) {
+      error(`patterns/index.json: invalid JSON: ${e.message}`);
+    }
+  }
+  // Tiles claiming patterns must name real patterns (mirror of the recipe rule)
+  if (declaredPatternNames.size) {
+    for (const [relPath, meta] of metaById) {
+      for (const name of meta.discovery?.patterns || []) {
+        if (!declaredPatternNames.has(name)) {
+          error(`${relPath}: discovery.patterns references unknown pattern "${name}"`);
+        }
+      }
+    }
   }
 }
 
