@@ -199,6 +199,58 @@ Pattern rules:
 - MCP servers MAY expose `get_pattern`; it is optional and not required for
   conformance.
 
+## Design-System Version Sync
+
+The registry is a **faithful snapshot of a pinned design-system version** —
+`registry.config.json` `designSystem.version` is the single source of truth.
+Version sync is event-driven, not continuous: between design-system releases
+the registry carries zero version burden, and an upgrade is an audited event
+with mechanical drift detection.
+
+### The pin
+
+- `designSystem.version` — the exact pinned release (no ranges)
+- `designSystem.package` — optional npm package carrying that release (e.g.
+  `@uswds/uswds`), whose devDependency must match the pin exactly
+- Cross-checked everywhere the version appears: `package.json` (when
+  `designSystem.package` is declared), `versions.json`, `agents.json` —
+  disagreement is a conformance error
+
+### Per-tile verification stamps
+
+`provenance.designSystemVersion` records the pinned version each tile body was
+last verified against. Set at capture; `generate-index.mjs` re-stamps a tile
+automatically when its body is re-baselined (a cited correction is a
+re-verification). Stale or missing stamps are an aggregated **worklist
+warning** — never an error — so a half-finished upgrade stays commitable.
+
+### The upgrade runbook
+
+1. **Bump the pin** (`designSystem.version` + `designSystem.package` in
+   `package.json`) — the validator now reports every disagreement
+2. **Class drift**: `staticView.classCheck` enumerates tile classes the new
+   release renamed or removed (error-level, mechanical)
+3. **Stamp drift**: the validator lists tiles not yet verified against the
+   new pin
+4. **Cited corrections**: for each affected tile, apply the new template's
+   markup through the purity path (provenance cites the new template; the
+   generator re-baselines and re-stamps)
+5. **Behavior check**: behavior contracts + conformance tests cover what
+   class checks cannot
+6. **Resolved views + index**: regenerate
+7. **Record the event**: `versions.json` entry (version,
+   `designSystemVersion`, `breakingChanges`, `migrationPath`), update
+   `agents.json`, refresh the federated `registries.json` entry, and fold the
+   registry's specifics into its AGENTS.md
+
+### Non-goals
+
+- **No multi-version tile sets** — one registry tracks one pinned version
+- **No version-range metadata** — tiles state what they were verified
+  against, not what they might survive
+- **No auto-sync** — upgrades are deliberate, cited events; the design
+  system's own changelog arrives mechanically through the drift detectors
+
 ## The Retrieval Flow
 
 ```

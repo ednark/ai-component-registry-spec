@@ -6,7 +6,7 @@
   "registries": [
     {
       "name": "uswds-ai-components",
-      "designSystem": "U.S. Web Design System 3.13.0",
+      "designSystem": "U.S. Web Design System 3.14.0",
       "domain": "United States federal government",
       "agentsJson": "https://raw.githubusercontent.com/ednark/uswds-ai-components/main/agents.json",
       "tileCount": 152,

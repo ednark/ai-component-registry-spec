@@ -597,6 +597,7 @@ coverage claims.
 | `provenance.observed` | date | when the variant was observed/derived (YYYY-MM-DD) |
 | `provenance.source` | string | URL of the site or documentation page where it was observed |
 | `provenance.method` | enum | `live-site observation` \| `design-system documentation` \| `coverage audit` |
+| `provenance.designSystemVersion` | string | design-system version this tile's body was last verified against. Set at capture; `generate-index.mjs` re-stamps it automatically when a purity re-baseline occurs (a cited correction is a re-verification against the current pin). Stale or missing stamps are an aggregated worklist warning, never an error — see protocol.md "Design-System Version Sync". |
 
 **Index leanness rule:** provenance stays in the tile; it is never copied into
 the discovery index. Registries doing systematic field research should also

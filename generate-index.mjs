@@ -375,6 +375,24 @@ function generate() {
       }
       console.log(`\nTile purity: ${drifted.length} ground-truth-cited body correction(s) re-baselined`);
       for (const [rel] of drifted) console.log(`  ↻ ${rel} (provenance: ${purityMeta.get(rel)?.provenance?.source})`);
+
+      // A cited re-baseline is a re-verification against the current pin:
+      // stamp the tile's provenance (metadata-only; protocol.md version sync)
+      const dsPin = config.designSystem?.version;
+      if (dsPin && /^\d+\.\d+(\.\d+)?$/.test(dsPin)) {
+        for (const [rel] of drifted) {
+          const meta = purityMeta.get(rel);
+          if (!meta) continue;
+          meta.provenance = meta.provenance || {};
+          if (meta.provenance.designSystemVersion === dsPin) continue;
+          meta.provenance.designSystemVersion = dsPin;
+          const tilePath = join(TILE_DIR, rel);
+          const html = readFileSync(tilePath, 'utf-8');
+          const m = html.match(new RegExp(`(<script[^>]*id="${agentMetaId}"[^>]*>)([\\s\\S]*?)(</script>)`));
+          if (m) writeFileSync(tilePath, html.replace(m[0], m[1] + JSON.stringify(meta, null, 2) + m[3]));
+          console.log(`  ✓ ${rel} stamped designSystemVersion=${dsPin}`);
+        }
+      }
     }
   }
 

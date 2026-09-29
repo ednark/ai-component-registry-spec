@@ -34,6 +34,10 @@
         },
         "url": {
           "type": "string"
+        },
+        "package": {
+          "type": "string",
+          "description": "npm package carrying the pinned design-system release (e.g. @uswds/uswds). Its devDependency must match designSystem.version exactly — the validator cross-checks the pin (protocol.md Design-System Version Sync)."
         }
       }
     },

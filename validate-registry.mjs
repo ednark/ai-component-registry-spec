@@ -588,6 +588,75 @@ if (patternsOnDisk) {
   }
 }
 
+// --- Design-system version pin (event-driven sync) ---
+// registry.config.json designSystem.version is THE pin; the registry is a
+// faithful snapshot of that version. Cross-checks everywhere the version
+// appears; per-tile stamps are an aggregated worklist warning (protocol.md
+// "Design-System Version Sync").
+{
+  const pin = config.designSystem?.version;
+  if (!pin) {
+    warn('registry.config.json has no designSystem.version pin — version sync checks inactive (protocol.md "Design-System Version Sync")');
+  } else {
+    const exact = /^\d+\.\d+(\.\d+)?$/.test(pin);
+    if (!exact) warn(`design-system pin "${pin}" is not an exact version — pin the exact release to activate stamp checks`);
+    const pkg = config.designSystem?.package;
+    if (pkg) {
+      try {
+        const pkgJson = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'));
+        const declared = pkgJson.devDependencies?.[pkg] ?? pkgJson.dependencies?.[pkg];
+        if (!declared) error(`designSystem.package "${pkg}" not found in package.json dependencies`);
+        else if (declared.replace(/^[~^]/, '') !== pin.replace(/^[~^]/, '')) {
+          error(`package.json ${pkg} (${declared}) != design-system pin ${pin} — align the pin before upgrading`);
+        } else if (/^[~^]/.test(declared)) {
+          warn(`package.json ${pkg} is a range (${declared}) — pin the exact version for ground-truth class checks`);
+        }
+      } catch (e) {
+        warn(`package.json unreadable: ${e.message}`);
+      }
+    }
+    const vPath = join(TILE_DIR, 'versions.json');
+    if (existsSync(vPath)) {
+      try {
+        const v = JSON.parse(readFileSync(vPath, 'utf-8'));
+        if (v.designSystem?.version && v.designSystem.version !== pin) {
+          error(`versions.json designSystem.version (${v.designSystem.version}) != design-system pin (${pin})`);
+        }
+        const entries = v.versions || [];
+        const latest = entries[entries.length - 1];
+        if (latest?.designSystemVersion && latest.designSystemVersion !== pin) {
+          error(`versions.json latest entry ${latest.version} verified against ${latest.designSystemVersion} != pin ${pin}`);
+        }
+      } catch (e) {
+        warn(`versions.json unreadable: ${e.message}`);
+      }
+    }
+    const aPath = join(ROOT, 'agents.json');
+    if (existsSync(aPath)) {
+      try {
+        const a = JSON.parse(readFileSync(aPath, 'utf-8'));
+        if (a.designSystem?.version && a.designSystem.version !== pin) {
+          error(`agents.json designSystem.version (${a.designSystem.version}) != design-system pin (${pin})`);
+        }
+      } catch (e) {
+        warn(`agents.json unreadable: ${e.message}`);
+      }
+    }
+    if (exact && !CONFORMANCE_ONLY && metaById.size) {
+      let ok = 0, stale = 0, missing = 0, first = null;
+      for (const [rel, meta] of metaById) {
+        const s = meta.provenance?.designSystemVersion;
+        if (!s) { missing++; first = first || rel; }
+        else if (s !== pin) { stale++; first = first || rel; }
+        else ok++;
+      }
+      if (ok < metaById.size) {
+        warn(`design-system stamps: ${ok}/${metaById.size} tiles verified against pin ${pin} (${missing} missing, ${stale} stale; e.g. ${first}) — worklist, see protocol.md "Design-System Version Sync"`);
+      }
+    }
+  }
+}
+
 // --- 3. Version history + compatibility maps ---
 
 const versionsFile = join(TILE_DIR, 'versions.json');
