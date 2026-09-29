@@ -18,6 +18,7 @@ components.index.json (lean — one record per component, no prose)
 recipes/{name}.json   (on demand — one atomic pattern fetch)
 patterns/{name}.json  (on demand — one task-to-component-set guidance fetch)
 versions.json         (on demand — what changed and how to migrate)
+observations.json     (on demand — field observations of the design system's ecosystem)
 ```
 
 ### Surface 1: `facets.json` — the filter vocabulary (optional)
@@ -198,6 +199,53 @@ Pattern rules:
   new surfaces.
 - MCP servers MAY expose `get_pattern`; it is optional and not required for
   conformance.
+
+### Surface 7: `observations.json` — field observations (optional)
+
+Live sites extend design systems inside their namespaces (hhs.gov ships
+`usa-alert--no-collapse`; usda.gov extends the nav). These extensions are
+knowledge about the design system's **ecosystem** — never tiles in the canon
+registry (classCheck blocks non-canon classes by construction). This surface
+records them so agents and maintainers can retrieve that context instead of
+rediscovering it.
+
+```
+GET {base}/infinite/observations.json
+```
+
+```json
+{
+  "schemaVersion": 1,
+  "observations": [
+    {
+      "observed": "2026-09-29",
+      "site": "hhs.gov",
+      "url": "https://www.hhs.gov",
+      "family": "alert",
+      "kind": "extension",
+      "extension": "usa-alert--no-collapse",
+      "note": "alert rendered without the collapse control",
+      "source": "field-research/agency-survey-2026-09"
+    }
+  ]
+}
+```
+
+Observation rules:
+
+- **Citations required**: every entry carries `observed` (date), `site`,
+  `url`, and `source` — the registry may only point, never assert
+- **Never tiles**: an observation is a record about the ecosystem; the
+  referenced classes are site-local and must not enter canon tiles
+- `kind`: `extension` (a new class in the design system's namespace) |
+  `composition` (a multi-component arrangement) | `other`
+- `family` names the canon family the observation relates to (a tiled family
+  or a core class); unknown families are a validator warning
+- **Convergence tool**: `_base/detect-convergence.mjs` reports extensions
+  observed across multiple independent sites. Convergence is a **sensor
+  reading, not a promotion path**: extensions enter the canon registry only
+  when the mainline design system ships them — at which point they arrive
+  through the normal purity path with their own provenance.
 
 ## Design-System Version Sync
 

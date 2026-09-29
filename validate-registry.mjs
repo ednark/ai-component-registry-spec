@@ -588,6 +588,48 @@ if (patternsOnDisk) {
   }
 }
 
+// --- Surface 7: observations.json (optional, hand-maintained) ---
+// Ecosystem knowledge: live-site extensions/compositions of the design
+// system's namespace. Citations required; observations are never tiles.
+{
+  const knownFamilies = (() => {
+    const names = new Set(componentDirs);
+    const corePath = join(TILE_DIR, 'core-classes.json');
+    if (existsSync(corePath)) {
+      try {
+        const c = JSON.parse(readFileSync(corePath, 'utf-8'));
+        for (const list of Object.values(c.categories || {})) {
+          for (const cls of list) names.add(cls.replace(/^usa-/, '').split('__')[0]);
+        }
+      } catch { /* shape checked elsewhere */ }
+    }
+    return names;
+  })();
+  const obsPath = join(TILE_DIR, 'observations.json');
+  if (existsSync(obsPath) && !CONFORMANCE_ONLY) {
+    let obs;
+    try {
+      obs = JSON.parse(readFileSync(obsPath, 'utf-8'));
+    } catch (e) {
+      error(`observations.json: invalid JSON: ${e.message}`);
+      obs = null;
+    }
+    if (obs) {
+      const entries = obs.observations || [];
+      entries.forEach((o, i) => {
+        const at = `observations[${i}]`;
+        for (const field of ['observed', 'site', 'url', 'source']) {
+          if (typeof o[field] !== 'string' || !o[field].trim()) error(`${obsPath}: ${at} missing "${field}" — citations required (protocol.md Surface 7)`);
+        }
+        if (!['extension', 'composition', 'other'].includes(o.kind)) error(`${obsPath}: ${at}.kind must be extension | composition | other`);
+        if (o.kind === 'extension' && (typeof o.extension !== 'string' || !o.extension.trim())) error(`${obsPath}: ${at} missing "extension" class string`);
+        if (o.family && !knownFamilies.has(o.family)) warn(`${obsPath}: ${at}.family "${o.family}" matches no tiled family or core class`);
+      });
+      if (!entries.length) warn(`${obsPath}: no observations recorded`);
+    }
+  }
+}
+
 // --- Design-system version pin (event-driven sync) ---
 // registry.config.json designSystem.version is THE pin; the registry is a
 // faithful snapshot of that version. Cross-checks everywhere the version
