@@ -35,11 +35,17 @@ value is the metadata around it. Therefore:
 1. **Metadata may change freely** — facets, guidance, coordination, patterns,
    compliance fields. This is the instruction layer, and it is the only place
    the registry authors content.
-2. **Body markup changes only as ground-truth corrections** — edits that move
-   the tile toward the official design-system source (its template, component
-   page, or documented structure). Never for convenience, invention, or
-   restyling. Every correction MUST update the tile's `provenance`
-   (`method` + `source`) citing that ground truth.
+2. **Body markup changes only as ground-truth capture or correction** — two
+   admissible sources, each cited in the tile's `provenance` (`method` +
+   `source`):
+   - **Design-system source** (canon): the official template, component page,
+     or documented structure. Corrections move tiles *toward* the design
+     system; never for convenience, invention, or restyling.
+   - **Live-site observation** (variant): a real implementation observed on a
+     live site, when the design system itself does not canonize the component.
+     The live site is the ground truth for that variant, and the tile MUST be
+     labeled `discovery.origin: "live-site"` (see Discovery Fields) so agents
+     can filter doctrine from observed variants.
 3. **Behavior scripts are declared, not improvised** — an inline script is
    legitimate when the tile's `instruction.behavior` contract declares
    `source: inline`, and must follow the single-handling rule when the host
@@ -304,6 +310,7 @@ This ordering prevents "constraint priority inversion" where a less important co
 | `discovery.description` | string | one-line summary |
 | `discovery.tier` | string | quality tier (e.g., `curated`, `needs-review`) |
 | `discovery.tags` | string[] | semantic search keywords |
+| `discovery.origin` | enum | provenance of the component body: `design-system` (canon — the design system documents or ships it; implied when absent) or `live-site` (an observed variant captured from a real implementation, **not** design-system canon). Required (as `live-site`) whenever the tile's `provenance.method` is `live-site observation`. Index-normalized so agents can filter doctrine from observed variants in code. |
 | `discovery.patterns` | string[] | pattern names (protocol.md Surface 6) this component participates in. Normalized into the index like `compositionRecipes` so pattern members are filterable in code. |
 
 ### Selection Fields (help agent choose the right component)

@@ -188,9 +188,25 @@ for (const file of tileFiles) {
     }
   }
 
+  // discovery.origin — doctrine vs observed-variant labeling (tile-format.md
+  // "Tile Purity"). The pair must be consistent: a live-site-observed body is
+  // ground truth for a variant, and agents must be able to filter it.
+  {
+    const provMethod = meta.provenance?.method;
+    const origin = meta.discovery?.origin;
+    if (origin !== undefined && !['design-system', 'live-site'].includes(origin)) {
+      error(`${relPath}: discovery.origin must be "design-system" or "live-site"`);
+    }
+    if (provMethod === 'live-site observation' && origin !== 'live-site') {
+      error(`${relPath}: provenance.method "live-site observation" requires discovery.origin: "live-site" — observed variants must be labeled as not design-system canon`);
+    }
+    if (origin === 'live-site' && provMethod !== 'live-site observation') {
+      error(`${relPath}: discovery.origin "live-site" requires provenance.method "live-site observation" citing the observed source`);
+    }
+  }
+
   // selection.guidance — machine-readable do/don't pairs (schema v2, additive).
-  if (meta.selection?.guidance !== undefined) {
-    if (!Array.isArray(meta.selection.guidance)) {
+  if (meta.selection?.guidance !== undefined) {    if (!Array.isArray(meta.selection.guidance)) {
       error(`${relPath}: selection.guidance must be an array`);
     } else {
       meta.selection.guidance.forEach((g, i) => {
