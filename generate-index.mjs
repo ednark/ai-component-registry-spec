@@ -22,6 +22,7 @@
  */
 
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'fs';
+import { createHash } from 'crypto';
 import { join, dirname, basename, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -60,6 +61,25 @@ const ROOT = process.cwd();
 const TILE_DIR = join(ROOT, tileDir);
 const COMPONENTS_INDEX = join(TILE_DIR, 'components.index.json');
 const FACETS_FILE = join(TILE_DIR, 'facets.json');
+const PURITY_PATH = join(TILE_DIR, 'tile-purity.json');
+
+// --- Tile purity (component ground truth) ---
+// The hash covers the component layer only: body markup with script elements
+// (metadata + behavior) excluded, whitespace-normalized so formatting-only
+// changes are not component changes. tile-purity.json is the git-tracked
+// baseline; body drift re-baselines only when the tile's provenance cites
+// ground truth (tile-format.md "Tile Purity").
+let purityPrevious = null;
+if (existsSync(PURITY_PATH)) {
+  try {
+    purityPrevious = JSON.parse(readFileSync(PURITY_PATH, 'utf-8'));
+  } catch (e) {
+    console.error(`Cannot parse existing tile-purity.json: ${e.message}`);
+    process.exit(1);
+  }
+}
+const purityHashes = {};
+const purityMeta = new Map();
 
 // --- File scanning ---
 
@@ -285,6 +305,16 @@ function generate() {
 
       let meta = extractMeta(content, relPath);
 
+      // Tile purity: hash the component layer (body markup, scripts excluded)
+      const bodyMatch = content.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      purityHashes[relPath] = createHash('sha256')
+        .update((bodyMatch ? bodyMatch[1] : '')
+          .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim())
+        .digest('hex');
+      purityMeta.set(relPath, meta);
+
       if (meta) {
         meta.file = relPath;
         if (!meta.id) {
@@ -325,6 +355,28 @@ function generate() {
   }
 
   console.log(`\nSchema versions: ${v1Count} v1, ${v2Count} v2`);
+
+  // Tile purity: drift re-baselines only with a ground-truth citation.
+  // Abort before writing anything when a body changed without provenance.
+  if (purityPrevious?.tiles) {
+    const drifted = Object.entries(purityHashes)
+      .filter(([rel, h]) => purityPrevious.tiles[rel] && purityPrevious.tiles[rel] !== h);
+    if (drifted.length) {
+      const uncited = drifted.filter(([rel]) => {
+        const meta = purityMeta.get(rel);
+        return !(meta?.provenance?.method && meta?.provenance?.source);
+      });
+      if (uncited.length) {
+        console.error('\n✗ TILE PURITY: body markup changed without ground-truth citation in:');
+        for (const [rel] of uncited) console.error('  ' + rel);
+        console.error('Body markup is component ground truth (tile-format.md "Tile Purity").');
+        console.error('Cite the correction in the tile\'s provenance (method + source), then regenerate.');
+        process.exit(1);
+      }
+      console.log(`\nTile purity: ${drifted.length} ground-truth-cited body correction(s) re-baselined`);
+      for (const [rel] of drifted) console.log(`  ↻ ${rel} (provenance: ${purityMeta.get(rel)?.provenance?.source})`);
+    }
+  }
 
   // Build facets — Surface 6: pattern membership is facet-filterable whenever
   // the registry declares patternGuidance, even if "patterns" is not listed
@@ -404,6 +456,16 @@ function generate() {
       console.log('  ℹ patternGuidance declared but no patterns/ directory — pattern manifest skipped');
     }
   }
+
+  // Tile purity baseline (git-tracked; see tile-format.md "Tile Purity")
+  writeFileSync(PURITY_PATH, JSON.stringify({
+    schemaVersion: 1,
+    generatedBy: '_base/generate-index.mjs',
+    algorithm: 'sha256 of whitespace-normalized body markup; script elements (metadata + behavior) excluded',
+    count: Object.keys(purityHashes).length,
+    tiles: purityHashes,
+  }, null, 2));
+  console.log(`  ✓ ${PURITY_PATH}`);
 
   console.log(`\nDone! Generated index with ${components.length} components`);
 }

@@ -3,36 +3,52 @@
 <head>
   <meta charset="utf-8">
   <title>Card (Default)</title>
-  <script type="application/json" id="fixture-agent-meta">
-  {
-    "file": "card/default.html",
-    "title": "Card (Default)",
-    "_schemaVersion": 2,
-    "discovery": {
-      "description": "A content card.",
-      "patterns": ["time-sensitive-action"]
-    },
-    "selection": {
-      "useWhen": ["Grouped content previews"],
-      "avoidWhen": ["Single-line actions"]
-    },
-    "instruction": {
-      "agentPrompt": "Change card body text."
-    },
-    "constraints": {
-      "preserve": ["card-base"],
-      "editable": ["Body text"],
-      "limitations": []
-    },
-    "tradeoffs": {
-      "sacrifices": [
-        { "capability": "in-place editing", "because": "rows link to dedicated change pages instead — one trust pattern per journey" }
-      ]
-    }
+  <script type="application/json" id="fixture-agent-meta">{
+  "file": "card/default.html",
+  "title": "Card (Default)",
+  "_schemaVersion": 2,
+  "discovery": {
+    "description": "A content card.",
+    "patterns": [
+      "time-sensitive-action"
+    ]
+  },
+  "selection": {
+    "useWhen": [
+      "Grouped content previews"
+    ],
+    "avoidWhen": [
+      "Single-line actions"
+    ]
+  },
+  "instruction": {
+    "agentPrompt": "Change card body text."
+  },
+  "constraints": {
+    "preserve": [
+      "card-base"
+    ],
+    "editable": [
+      "Body text"
+    ],
+    "limitations": []
+  },
+  "tradeoffs": {
+    "sacrifices": [
+      {
+        "capability": "in-place editing",
+        "because": "rows link to dedicated change pages instead — one trust pattern per journey"
+      }
+    ]
+  },
+  "provenance": {
+    "observed": "2026-09-29",
+    "method": "design-system documentation",
+    "source": "official card template (fixture ground truth)"
   }
-  </script>
+}</script>
 </head>
 <body>
-  <div class="card-base"><h3>Card title</h3><p>Body</p></div>
+  <div class="card-base"><h3>Card title</h3><p>Card body content</p></div>
 </body>
 </html>

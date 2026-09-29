@@ -13,6 +13,9 @@
       "description": "Primary button for important actions.",
       "patterns": [
         "time-sensitive-action"
+      ],
+      "tags": [
+        "purity-demo"
       ]
     },
     {

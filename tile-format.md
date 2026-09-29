@@ -19,6 +19,50 @@ Every component in the registry is a single self-contained `.html` file. The fil
 - **Works offline**: opens by double-click, no server required.
 - **One component per file**: each tile demonstrates one component variant.
 
+## Tile Purity (component ground truth)
+
+A tile is three layers with different governance:
+
+| Layer | Content | Governance |
+|---|---|---|
+| **Component** | body markup — structure, classes, text, attributes (script elements excluded) | **Purity** — changes only as ground-truth corrections |
+| **Behavior** | `<script>` elements | Behavior contract (`instruction.behavior`) — truthful, single-handling |
+| **Interface** | agent-meta blocks (`{agentMetaId}`, `{agentMetaId}-dense`) | Free — the coordination layer; may change at any time |
+
+The component belongs to the design system, not the registry; the registry's
+value is the metadata around it. Therefore:
+
+1. **Metadata may change freely** — facets, guidance, coordination, patterns,
+   compliance fields. This is the instruction layer, and it is the only place
+   the registry authors content.
+2. **Body markup changes only as ground-truth corrections** — edits that move
+   the tile toward the official design-system source (its template, component
+   page, or documented structure). Never for convenience, invention, or
+   restyling. Every correction MUST update the tile's `provenance`
+   (`method` + `source`) citing that ground truth.
+3. **Behavior scripts are declared, not improvised** — an inline script is
+   legitimate when the tile's `instruction.behavior` contract declares
+   `source: inline`, and must follow the single-handling rule when the host
+   bundle is wired. Script changes are governed by the behavior contract, not
+   by purity.
+
+### Enforcement (body-stamp baseline)
+
+`generate-index.mjs` computes a SHA-256 over each tile's whitespace-normalized
+body markup with script elements excluded, and maintains
+`{tileDir}/tile-purity.json` as a git-tracked baseline.
+
+- **Baseline drift** (a tile's body changed since the last baseline) is a
+  generation failure unless that tile's `provenance` cites ground truth
+  (`method` + `source`) — with a citation, the baseline is regenerated and the
+  correction is logged; without one, the generator aborts before writing
+  anything.
+- `validate-registry.mjs` recomputes the hashes: a tile whose body differs
+  from the baseline is a conformance error. The check is active whenever
+  `tile-purity.json` exists, so registries opt in by generating it.
+- Whitespace is normalized before hashing: formatting-only changes are not
+  component changes; everything else is.
+
 ## HTML Structure
 
 ```html
@@ -551,6 +595,10 @@ coverage claims.
 the discovery index. Registries doing systematic field research should also
 maintain a session log at `{tileDir}/provenance.json` (sessions with date,
 source, findings, and tilesAdded).
+
+**Tile purity:** body-markup corrections cite their ground truth here
+(`method` + `source`) — `generate-index.mjs` requires this citation before
+re-baselining a changed tile body (see "Tile Purity" above).
 
 ### Core Classes (the untiled layer)
 

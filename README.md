@@ -42,7 +42,7 @@ Each sub-registry:
 |------|---------|
 | `protocol.md` | The retrieval protocol spec (6 surfaces: facets, index, tile, recipes, versions, patterns — plus flow, constraint handling, adaptation rules) |
 | `tile-format.md` | HTML tile format with embedded `*-agent-meta` JSON block (supports schema v1 flat and v2 categorized metadata) |
-| `generate-index.mjs` | Generic, config-driven index generator (normalizes v1 and v2 metadata to a lean, prose-free index) |
+| `generate-index.mjs` | Generic, config-driven index generator (normalizes v1 and v2 metadata to a lean, prose-free index; maintains the `tile-purity.json` body baseline — see `tile-format.md`, "Tile Purity") |
 | `registry.config.schema.json` | JSON Schema for validating `registry.config.json` |
 | `validate-registry.mjs` | Registry linter + cross-registry conformance checker |
 | `generate-resolved-view.mjs` | Generates computed-style companions (`{variant}.resolved.html`) for every tile — appearance for design tools and standalone preview (see `tile-format.md`, "Resolved View Companion") |

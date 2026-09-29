@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "_base/generate-index.mjs",
+  "algorithm": "sha256 of whitespace-normalized body markup; script elements (metadata + behavior) excluded",
+  "count": 3,
+  "tiles": {
+    "button/default.html": "e34577c5e36f3ab6dec82de7bb141091d9d4d015aaeb3b6334afe70e9f33867c",
+    "card/default.html": "76982da8554c826bdb93ecc12316de367d9a73c5e4ae9be36d405ded732f693f",
+    "input/default.html": "a52ef43ba53557470a0eab9366b503bb84e8d4ab3aff2ac6654787d88513bb4b"
+  }
+}
