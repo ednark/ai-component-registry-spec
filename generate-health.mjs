@@ -62,16 +62,24 @@ if (pin) {
   }
 }
 
-// Drift register, bucketed by the reason a maintainer wrote.
-const cats = { drift: 0, appLayer: 0, siteLayer: 0, extension: 0, canonicalUnstyled: 0, other: 0 };
+// Drift register, bucketed by the reason a maintainer wrote. The buckets are
+// the useful part of the trust surface (how much of the register is expected
+// drift vs deliberate), so the keyword list is deliberately generous and the
+// fallback is explicit rather than silent.
+const cats = { canonicalUnstyled: 0, appLayer: 0, siteLayer: 0, extension: 0, drift: 0, compat: 0, registryInternal: 0, unclassified: 0 };
+const BUCKETS = [
+  ['canonicalUnstyled', ['no css', 'no styles', 'unstyled', 'no styling', 'canonical structural', 'canonical markup', 'js mount', 'javascript mount', 'no effect expected']],
+  ['appLayer', ['app layer', 'app-layer', 'publishing', 'govuk-publishing', 'presentation layer']],
+  ['siteLayer', ['site layer', 'site-level', 'site-specific', 'not part of wet', 'site-local']],
+  ['extension', ['extension', 'community', 'non-standard']],
+  ['drift', ['drift', 'pre-v', 'pre-1.', 'pre-5', 'rework pending', 'does not exist', 'not defined in']],
+  ['compat', ['backward-compat', 'no-op', 'compatibility']],
+  ['registryInternal', ['registry demo', 'demo structure', 'registry-internal']],
+];
 for (const a of allowlist) {
   const r = (a.reason || '').toLowerCase();
-  if (r.includes('canonical markup with no css')) cats.canonicalUnstyled++;
-  else if (r.includes('app layer') || r.includes('publishing')) cats.appLayer++;
-  else if (r.includes('site layer') || r.includes('not part of')) cats.siteLayer++;
-  else if (r.includes('extension')) cats.extension++;
-  else if (r.includes('drift') || r.includes('pre-')) cats.drift++;
-  else cats.other++;
+  const hit = BUCKETS.find(([, keys]) => keys.some((k) => r.includes(k)));
+  cats[hit ? hit[0] : 'unclassified']++;
 }
 
 // Convergence watchlist: extensions observed on 2+ independent sites.
@@ -138,4 +146,6 @@ function countBy(arr, k) {
 }
 
 fs.writeFileSync(join(ROOT, 'registry-health.json'), JSON.stringify(health, null, 2) + '\n');
-console.log(`registry-health.json: pin ${pin} · stamps ${verified}/${total} · classCheck ${cc ? 'on' : 'off'} · conformance ${conformance} · last deep check ${lastDeepCheck ?? 'none recorded'}`);
+const un = cats.unclassified;
+if (un) console.warn(`  ℹ ${un} allowlist entr${un === 1 ? 'y has' : 'ies have'} an unrecognised reason — add a keyword to the bucket list in generate-health.mjs`);
+console.log(`registry-health.json: pin ${pin} · stamps ${verified}/${total} · classCheck ${cc ? 'on' : 'off'} · drift ${allowlist.length}${allowlist.length ? ' (' + Object.entries(cats).filter(([k, v]) => v && k !== 'unclassified').map(([k, v]) => k + ' ' + v).join(', ') + ')' : ''} · conformance ${conformance} · last deep check ${lastDeepCheck ?? 'none recorded'}`);
