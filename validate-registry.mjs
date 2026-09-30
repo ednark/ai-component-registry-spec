@@ -191,17 +191,18 @@ for (const file of tileFiles) {
     }
   }
 
-  // discovery.origin — doctrine vs observed-variant labeling (tile-format.md
-  // "Tile Purity"). The pair must be consistent: a live-site-observed body is
-  // ground truth for a variant, and agents must be able to filter it.
+  // discovery.origin — canon vs observed variant vs community extension
+  // labeling (tile-format.md "Tile Purity"). The provenance pair must be
+  // consistent: a live-site-observed body is ground truth for a variant, and
+  // agents must be able to filter all three categories in code.
   {
     const provMethod = meta.provenance?.method;
     const origin = meta.discovery?.origin;
-    if (origin !== undefined && !['design-system', 'live-site'].includes(origin)) {
-      error(`${relPath}: discovery.origin must be "design-system" or "live-site"`);
+    if (origin !== undefined && !['design-system', 'live-site', 'extension'].includes(origin)) {
+      error(`${relPath}: discovery.origin must be "design-system", "live-site" or "extension"`);
     }
-    if (provMethod === 'live-site observation' && origin !== 'live-site') {
-      error(`${relPath}: provenance.method "live-site observation" requires discovery.origin: "live-site" — observed variants must be labeled as not design-system canon`);
+    if (provMethod === 'live-site observation' && !['live-site', 'extension'].includes(origin)) {
+      error(`${relPath}: provenance.method "live-site observation" requires discovery.origin "live-site" (an observed variant) or "extension" (a class the design system does not ship) — observed classes must be labeled as non-canon`);
     }
     if (origin === 'live-site' && provMethod !== 'live-site observation') {
       error(`${relPath}: discovery.origin "live-site" requires provenance.method "live-site observation" citing the observed source`);

@@ -46,6 +46,14 @@ value is the metadata around it. Therefore:
      The live site is the ground truth for that variant, and the tile MUST be
      labeled `discovery.origin: "live-site"` (see Discovery Fields) so agents
      can filter doctrine from observed variants.
+
+   A design system may also have **community extensions**: classes in its
+   namespace that it does not ship, but that real sites use (ECL's
+   `ecl-button--ghost` appears on several EU sites and in no release). A
+   registry that captures one SHOULD label it `discovery.origin: "extension"`
+   and state the canonical fallback in `constraints.limitations`. An extension
+   is **never** a design-system variant: it may appear or vanish between
+   releases, and an agent using it must know that.
 3. **Behavior scripts are declared, not improvised** — an inline script is
    legitimate when the tile's `instruction.behavior` contract declares
    `source: inline`, and must follow the single-handling rule when the host
@@ -310,7 +318,7 @@ This ordering prevents "constraint priority inversion" where a less important co
 | `discovery.description` | string | one-line summary |
 | `discovery.tier` | string | quality tier (e.g., `curated`, `needs-review`) |
 | `discovery.tags` | string[] | semantic search keywords |
-| `discovery.origin` | enum | provenance of the component body: `design-system` (canon — the design system documents or ships it; implied when absent) or `live-site` (an observed variant captured from a real implementation, **not** design-system canon). Required (as `live-site`) whenever the tile's `provenance.method` is `live-site observation`. Index-normalized so agents can filter doctrine from observed variants in code. |
+| `discovery.origin` | enum | provenance of the component body: `design-system` (canon — the design system documents or ships it; implied when absent), `live-site` (an observed variant captured from a real implementation, **not** design-system canon), or `extension` (a class in the design system's namespace that the design system **does not ship**, captured because real sites use it — never canon, and carried as a non-standard composable). Index-normalized so agents can filter doctrine from observations and extensions in code. Required (as `live-site`) whenever the tile's `provenance.method` is `live-site observation`. |
 | `discovery.patterns` | string[] | pattern names (protocol.md Surface 6) this component participates in. Normalized into the index like `compositionRecipes` so pattern members are filterable in code. |
 
 ### Selection Fields (help agent choose the right component)
