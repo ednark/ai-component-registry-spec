@@ -4,11 +4,11 @@
 what broke, and what changed as a result. It is the substrate the rest of the
 project's epistemic layer is built on:
 
-- **Spec rules cite it.** A rule in `protocol.md` / `tile-format.md` /
+- **Spec rules cite it.** A rule in `protocol.md` / `tile-format.md` / [design-decision]
   `deep-check.md` marked `[evidence: uswds:F-007]` is load-bearing because a
   test produced it; `[design-decision]` marks taste. `lint-spec.mjs` enforces
   that every rule-bearing bullet carries one.
-- **`registry-health.json` aggregates it.** `lastDeepCheck` and the finding
+- **`registry-health.json` aggregates it.** `lastDeepCheck` and the finding [design-decision]
   counts come from here.
 
 A finding with `result: "clean"` is recorded exactly like a fix. A registry
@@ -57,18 +57,18 @@ because a spec rule is usually load-bearing across more than one registry.
 ## Rules
 
 - **Every deep check writes an entry**, including a clean one. A check with no
-  entry is indistinguishable from a check that never ran.
+  entry is indistinguishable from a check that never ran. [evidence: uswds:F-009]
 - **`broke` without a `changed` is an open item.** It is legal (a finding you
-  are carrying), but it should show up in a review.
+  are carrying), but it should show up in a review. [evidence: uswds:F-009]
 - **Entries are append-only.** A finding is a record of what was true on its
-  date; superseding it means writing a new entry, not rewriting the old one.
-- **The ledger never states a claim it cannot point at.** If `evidence` is
+  date; superseding it means writing a new entry, not rewriting the old one. [evidence: uswds:F-009]
+- **The ledger never states a claim it cannot point at.** If `evidence` is [design-decision]
   empty and `result` is `fixed`, that is a smell.
 
 ## Related surfaces
 
-- `registry-health.json` — machine-readable trust summary (generated)
-- `versions.json` — the registry's own changelog; the ledger explains *why* a
+- `registry-health.json` — machine-readable trust summary (generated) [design-decision]
+- `versions.json` — the registry's own changelog; the ledger explains *why* a [design-decision]
   version entry exists
-- `observations.json` (Surface 7) — the record of what the *ecosystem* does,
+- `observations.json` (Surface 7) — the record of what the *ecosystem* does, [design-decision]
   as opposed to what testing found about the registry itself

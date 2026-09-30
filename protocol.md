@@ -42,8 +42,8 @@ GET {base}/infinite/components.index.json
 ### Surface 3: `<component>.html` — the component tile
 
 Fetched only for components the agent has already selected. One fetch returns:
-- The complete, copy-pasteable source (HTML + inline CSS/JS, zero dependencies)
-- An embedded `<script type="application/json" id="{agentMetaId}">` JSON block with adaptation guidance
+- The complete, copy-pasteable source (HTML + inline CSS/JS, zero dependencies) [design-decision]
+- An embedded `<script type="application/json" id="{agentMetaId}">` JSON block with adaptation guidance [design-decision]
 
 The adaptation metadata travels *inside* the tile so it's never wasted in the index.
 
@@ -84,11 +84,11 @@ A recipe is a static JSON file alongside the tiles:
 
 Recipe rules:
 
-- Every `components[].file` must reference a real tile in the same registry
-- `order` is the fetch/assembly order; `role` explains why the component is in the set
-- Components listed in a recipe must declare the recipe in their tile's
+- Every `components[].file` must reference a real tile in the same registry [design-decision]
+- `order` is the fetch/assembly order; `role` explains why the component is in the set [design-decision]
+- Components listed in a recipe must declare the recipe in their tile's [design-decision]
   `coordination.compositionRecipes` so facet filtering finds recipe members
-- Recipes are discovery surfaces: keep them lean (no component source inline)
+- Recipes are discovery surfaces: keep them lean (no component source inline) [design-decision]
 
 ### Surface 5: `versions.json` — version history (optional)
 
@@ -123,11 +123,11 @@ GET {base}/infinite/{component}/versions.json        → component-level (option
 
 Version-history rules:
 
-- `breakingChanges` must list anything that invalidates previously fetched
+- `breakingChanges` must list anything that invalidates previously fetched [design-decision]
   tiles or index filters (removed facets, renamed fields, changed `file` paths)
-- Every entry needs a `migrationPath` — even if it is "none required"
-- Component-level files follow the same shape scoped to one component's variants
-- Registries without meaningful versioning may omit this surface; MCP
+- Every entry needs a `migrationPath` — even if it is "none required" [design-decision]
+- Component-level files follow the same shape scoped to one component's variants [design-decision]
+- Registries without meaningful versioning may omit this surface; MCP [design-decision]
   `get_versions` returns `available: false` (the probe never fails)
 
 ### Surface 6: `patterns/{name}.json` — pattern guidance (optional)
@@ -178,26 +178,26 @@ A pattern is a static JSON file alongside the tiles:
 
 Pattern rules:
 
-- **Task-to-component-set only.** `components` names tile families and
+- **Task-to-component-set only.** `components` names tile families and [design-decision]
   `recipes` names Surface 4 recipes; both must reference real entries in the
   same registry. No ordering, nesting, or placement instruction belongs in a
   pattern file — that is a recipe's job or the implementor's.
-- **Citations required.** Every `doctrine[]` and `mandatedElements[]` entry
+- **Citations required.** Every `doctrine[]` and `mandatedElements[]` entry [evidence: uswds:F-004]
   carries a `source`; every `knownFailureModes[]` entry carries a `run`
   (field-test evidence — measured failures, not design opinion).
-- Components listed in a pattern must declare the pattern in their tile's
+- Components listed in a pattern must declare the pattern in their tile's [design-decision]
   `discovery.patterns` so facet filtering finds pattern members (mirror of
   the recipe rule).
-- `useWhen`/`avoidWhen` govern *task* match (pattern-level selection), the
+- `useWhen`/`avoidWhen` govern *task* match (pattern-level selection), the [design-decision]
   same distinction `selection.useWhen`/`avoidWhen` makes for component choice.
-- Patterns are discovery surfaces: keep them lean (no component source inline).
-- **Config-gated:** a registry publishes this surface only by declaring
+- Patterns are discovery surfaces: keep them lean (no component source inline). [design-decision]
+- **Config-gated:** a registry publishes this surface only by declaring [design-decision]
   `patternGuidance: true` in `registry.config.json`. `generate-index.mjs`
   emits `patterns/index.json` and normalizes `discovery.patterns` into index
   records; `validate-registry.mjs` enforces the rules above only for
   registries that declare it. A registry that does not declare it sees zero
   new surfaces.
-- MCP servers MAY expose `get_pattern`; it is optional and not required for
+- MCP servers MAY expose `get_pattern`; it is optional and not required for [design-decision]
   conformance.
 
 ### Surface 7: `observations.json` — field observations (optional)
@@ -233,15 +233,15 @@ GET {base}/infinite/observations.json
 
 Observation rules:
 
-- **Citations required**: every entry carries `observed` (date), `site`,
+- **Citations required**: every entry carries `observed` (date), `site`, [evidence: uswds:F-004]
   `url`, and `source` — the registry may only point, never assert
-- **Never tiles**: an observation is a record about the ecosystem; the
+- **Never tiles**: an observation is a record about the ecosystem; the [evidence: uswds:F-004]
   referenced classes are site-local and must not enter canon tiles
-- `kind`: `extension` (a new class in the design system's namespace) |
+- `kind`: `extension` (a new class in the design system's namespace) | [design-decision]
   `composition` (a multi-component arrangement) | `other`
-- `family` names the canon family the observation relates to (a tiled family
+- `family` names the canon family the observation relates to (a tiled family [design-decision]
   or a core class); unknown families are a validator warning
-- **Convergence tool**: `_base/detect-convergence.mjs` reports extensions
+- **Convergence tool**: `_base/detect-convergence.mjs` reports extensions [evidence: uswds:F-004, ecl:F-003]
   observed across multiple independent sites. Convergence is a **sensor
   reading, not a promotion path**: extensions enter the canon registry only
   when the mainline design system ships them — at which point they arrive
@@ -257,10 +257,10 @@ with mechanical drift detection.
 
 ### The pin
 
-- `designSystem.version` — the exact pinned release (no ranges)
+- `designSystem.version` — the exact pinned release (no ranges) [evidence: uswds:F-001]
 - `designSystem.package` — the npm package carrying that release (e.g.
-  `@uswds/uswds`), whose devDependency must match the pin exactly
-- Cross-checked everywhere the version appears: `package.json`,
+  `@uswds/uswds`), whose devDependency must match the pin exactly. [evidence: uswds:F-001]
+- Cross-checked everywhere the version appears: `package.json`, [evidence: uswds:F-001]
   `versions.json`, `agents.json` — disagreement is a conformance error
 
 ### Verification strategy (how a registry proves its tiles)
@@ -293,7 +293,7 @@ design systems verify the same way:
 design system ships templates: a class can be **canonical markup with no CSS
 rules**. GOV.UK's `govuk-table__head` is in the v6 templates but carries no
 styles (v4+ styles `__header`/`__cell`); a styling-only check misreads it as
-drift and will "correct" a correct tile. Verify markup before styling.
+drift and will "correct" a correct tile. Verify markup before styling. [evidence: govuk:F-001, uswds:F-008]
 
 Prefer `installed-package` over `live-site`: a versioned package is immutable
 and CI-installable, while a live stylesheet changes under you. A registry that
@@ -319,9 +319,9 @@ absent from the package is never a package variant, whatever prefix it carries.
 than invisible state. Every entry carries a `reason`, and reasons SHOULD fall
 into the three categories the deep check distinguishes (see `deep-check.md`):
 
-- **canonical-but-unstyled** — in the templates, no CSS rules by design
-- **app layer** — publishing/presentation layer, not a package component
-- **pre-migration drift** — predates the pinned version; rework pending
+- **canonical-but-unstyled** — in the templates, no CSS rules by design [evidence: govuk:F-001, uswds:F-008]
+- **app layer** — publishing/presentation layer, not a package component [evidence: govuk:F-003]
+- **pre-migration drift** — predates the pinned version; rework pending [evidence: uswds:F-001, dsfr:F-001, ecl:F-001]
 
 A registry that grows an allowlist is telling the truth about its drift; a
 registry that silently passes is not necessarily correct.
@@ -336,53 +336,96 @@ warning** — never an error — so a half-finished upgrade stays commitable.
 
 ### The upgrade runbook
 
-1. **Bump the pin** (`designSystem.version` + `designSystem.package` in
+1. **Bump the pin** (`designSystem.version` + `designSystem.package` in [evidence: uswds:F-001]
    `package.json`) — the validator now reports every disagreement
-2. **Class drift**: `staticView.classCheck` enumerates tile classes the new
+2. **Class drift**: `staticView.classCheck` enumerates tile classes the new [design-decision]
    release renamed or removed (error-level, mechanical)
-3. **Stamp drift**: the validator lists tiles not yet verified against the
+3. **Stamp drift**: the validator lists tiles not yet verified against the [design-decision]
    new pin
-4. **Cited corrections**: for each affected tile, apply the new template's
+4. **Cited corrections**: for each affected tile, apply the new template's [design-decision]
    markup through the purity path (provenance cites the new template; the
    generator re-baselines and re-stamps)
-5. **Behavior check**: behavior contracts + conformance tests cover what
+5. **Behavior check**: behavior contracts + conformance tests cover what [design-decision]
    class checks cannot
-6. **Resolved views + index**: regenerate
-7. **Record the event**: `versions.json` entry (version,
+6. **Resolved views + index**: regenerate [design-decision]
+7. **Record the event**: `versions.json` entry (version, [design-decision]
    `designSystemVersion`, `breakingChanges`, `migrationPath`), update
    `agents.json`, refresh the federated `registries.json` entry, and fold the
    registry's specifics into its AGENTS.md
 
 ### Non-goals
 
-- **No multi-version tile sets** — one registry tracks one pinned version
-- **No version-range metadata** — tiles state what they were verified
+- **No multi-version tile sets** — one registry tracks one pinned version [design-decision]
+- **No version-range metadata** — tiles state what they were verified [design-decision]
   against, not what they might survive
-- **No auto-sync** — upgrades are deliberate, cited events; the design
+- **No auto-sync** — upgrades are deliberate, cited events; the design [design-decision]
   system's own changelog arrives mechanically through the drift detectors
+
+### Trust surface: `registry-health.json`
+
+Every registry publishes `registry-health.json` at its root (generated by
+`_base/generate-health.mjs`, advertised in `agents.json` as `healthUrl`). It is
+the machine-readable answer to *how much should I trust this registry before I
+fetch anything from it?*
+
+```json
+{
+  "registry": "ecl-ai-components",
+  "designSystem": { "pin": "5.3.1", "package": "@ecl/preset-eu",
+                    "groundTruth": "installed-package" },
+  "classCheck": { "enabled": true, "prefixes": 1, "allowlistSize": 21,
+                  "categories": { "drift": 19, "canonicalUnstyled": 2, ... } },
+  "stamps": { "verified": 34, "total": 36, "percent": 94 },
+  "findings": { "count": 4, "lastDeepCheck": "2026-09-30",
+                "byResult": { "broke": 2, "fixed": 1, "recorded": 1 } },
+  "conformance": "pass"
+}
+```
+
+- **The point is calibration, not a green dashboard.** A registry that [design-decision]
+  publishes its drift register, its unstamped tiles and its last check date is
+  telling you where *not* to trust it. Silence is the bad signal.
+- `stamps.percent` is the operative number: it is the share of tiles verified [design-decision]
+  against the pinned design system, so a low value is a stated limitation
+  rather than a hidden one.
+- `classCheck.categories` says how much of the register is *expected* drift [design-decision]
+  (canonical-but-unstyled, app layer) versus unexpected (drift, site layer).
+- `conformance` is the shipped validator's own verdict, re-derived at [design-decision]
+  generation time — a registry cannot claim conformance it no longer passes.
+- A registry with no `findings` block has no ledger; `lastDeepCheck: null` [design-decision]
+  means no check has ever been recorded, which is a different state from
+  "checked and clean".
+
+### The findings ledger (`findings.json`)
+
+`{tileDir}/findings.json` is the registry's epistemic record — what was
+tested, what broke, and what changed (`findings-ledger.md` has the schema).
+Spec rules cite it: `[evidence: ecl:F-002]` for a rule that a test produced,
+`[design-decision]` for taste. `lastDeepCheck` in the health file comes from
+the newest `deep-check` entry.
 
 ## The Retrieval Flow
 
 ```
-1. GET agents.json          → learn the manifest (count, URLs, facet schema)
-2. GET facets.json          → learn what you can filter on (optional)
-3. GET components.index.json → load the full component list
-4. Filter in CODE           → narrow by facets to a shortlist
-5. GET infinite/{file}      → fetch only the chosen tiles
-6. Parse metadata           → read the embedded agent-meta block
-7. Check _schemaVersion     → v2: read categorized fields; v1: read flat fields
-8. Validate selection       → confirm useWhen/avoidWhen match the task
-9. Adapt with constraints   → follow instruction, enforce constraints
-10. Verify output           → check all constraints.preserve elements are intact
+1. GET agents.json          → learn the manifest (count, URLs, facet schema) [design-decision]
+2. GET facets.json          → learn what you can filter on (optional) [design-decision]
+3. GET components.index.json → load the full component list [design-decision]
+4. Filter in CODE           → narrow by facets to a shortlist [design-decision]
+5. GET infinite/{file}      → fetch only the chosen tiles [design-decision]
+6. Parse metadata           → read the embedded agent-meta block [design-decision]
+7. Check _schemaVersion     → v2: read categorized fields; v1: read flat fields [design-decision]
+8. Validate selection       → confirm useWhen/avoidWhen match the task [design-decision]
+9. Adapt with constraints   → follow instruction, enforce constraints [design-decision]
+10. Verify output           → check all constraints.preserve elements are intact [design-decision]
 ```
 
 ## Agent Entry Points
 
 Three machine-readable entry points allow agents to discover the registry:
 
-- **`agents.json`** — compact manifest: registry name, component count, index URL, fetch URL pattern, facet schema, retrieval flow. The "front door" for agents.
-- **`llms.txt`** — plain-text protocol following the `llms.txt` convention. Describes the three surfaces in natural language.
-- **MCP server** (`_base/mcp/server.mjs`) — a Model Context Protocol server that exposes the registry as tools (`search_components`, `get_component`, `list_facets`, `get_index`, `get_adapter`, `translate_component`). Enables direct integration with MCP-capable agents (Claude Desktop, opencode, etc.) over stdio. See `mcp/README.md`.
+- **`agents.json`** — compact manifest: registry name, component count, index URL, fetch URL pattern, facet schema, retrieval flow. The "front door" for agents. [design-decision]
+- **`llms.txt`** — plain-text protocol following the `llms.txt` convention. Describes the three surfaces in natural language. [design-decision]
+- **MCP server** (`_base/mcp/server.mjs`) — a Model Context Protocol server that exposes the registry as tools (`search_components`, `get_component`, `list_facets`, `get_index`, `get_adapter`, `translate_component`). Enables direct integration with MCP-capable agents (Claude Desktop, opencode, etc.) over stdio. See `mcp/README.md`. [design-decision]
 
 When an MCP client is connected, agents should prefer the MCP tools over raw HTTP fetches — the tools encapsulate the retrieval flow and cross-design-system transfer below.
 
@@ -398,15 +441,15 @@ When the task matches a published pattern (Surface 6), fetch the pattern first f
 
 When adapting a retrieved component:
 
-- Inherit the project's colour palette: replace hardcoded hex values
-- Inherit the project's spacing scale: replace hardcoded px values where practical
-- Inherit the project's typography: replace font families
-- Preserve `prefers-reduced-motion` handling: do not remove it
-- Preserve `document.hidden` pause logic: do not remove it
-- Preserve CSS/JS namespace prefixes: do not globalise component styles
-- Preserve semantic HTML structure
-- Minimise additional dependencies introduced during adaptation
-- Read the embedded `*-agent-meta` block for component-specific guidance
+- Inherit the project's colour palette: replace hardcoded hex values [design-decision]
+- Inherit the project's spacing scale: replace hardcoded px values where practical [design-decision]
+- Inherit the project's typography: replace font families [design-decision]
+- Preserve `prefers-reduced-motion` handling: do not remove it [design-decision]
+- Preserve `document.hidden` pause logic: do not remove it [design-decision]
+- Preserve CSS/JS namespace prefixes: do not globalise component styles [design-decision]
+- Preserve semantic HTML structure [design-decision]
+- Minimise additional dependencies introduced during adaptation [design-decision]
+- Read the embedded `*-agent-meta` block for component-specific guidance [design-decision]
 
 ## Constraint Handling
 
@@ -428,28 +471,28 @@ The embedded metadata uses a categorized structure (schema v2) that separates me
 
 When constraints conflict, resolve in this order (highest priority first):
 
-1. **`constraints.preserve`** — never modify these elements. This protects accessibility (ARIA attributes), semantic HTML structure, and design system integrity.
-2. **`constraints.limitations`** — respect known caveats. These document real-world constraints the component cannot overcome.
-3. **`instruction.agentPrompt`** — adapt within the boundaries set above. This is the creative guidance.
-4. **`constraints.editable`** — prefer changes listed here. These are known-safe modification points.
+1. **`constraints.preserve`** — never modify these elements. This protects accessibility (ARIA attributes), semantic HTML structure, and design system integrity. [design-decision]
+2. **`constraints.limitations`** — respect known caveats. These document real-world constraints the component cannot overcome. [design-decision]
+3. **`instruction.agentPrompt`** — adapt within the boundaries set above. This is the creative guidance. [design-decision]
+4. **`constraints.editable`** — prefer changes listed here. These are known-safe modification points. [design-decision]
 
 ### Constraint Priority Inversion Prevention
 
 Research shows that when multiple constraints are active simultaneously, less important constraints can silently override more important ones (Constraint Tax, 2026). To prevent this:
 
-- **Never** remove or modify elements listed in `constraints.preserve` to satisfy `instruction.agentPrompt`
-- **Never** ignore `constraints.limitations` to enable an adaptation suggested by `instruction.agentPrompt`
-- If `instruction.agentPrompt` conflicts with `constraints.preserve`, follow `constraints.preserve` and note the conflict in your output
-- If `constraints.editable` doesn't cover a needed change, check `constraints.preserve` first — if the element is not listed there, the change may be safe but should be noted
+- **Never** remove or modify elements listed in `constraints.preserve` to satisfy `instruction.agentPrompt` [design-decision]
+- **Never** ignore `constraints.limitations` to enable an adaptation suggested by `instruction.agentPrompt` [design-decision]
+- If `instruction.agentPrompt` conflicts with `constraints.preserve`, follow `constraints.preserve` and note the conflict in your output [design-decision]
+- If `constraints.editable` doesn't cover a needed change, check `constraints.preserve` first — if the element is not listed there, the change may be safe but should be noted [design-decision]
 
 ### Validation Contract
 
 After adapting a component, verify:
 
-1. Every element in `constraints.preserve` is present and unmodified in the output
-2. No element in `constraints.limitations` has been violated
-3. Changes align with `instruction.agentPrompt` within the constraint boundaries
-4. All changes are within `constraints.editable` or explicitly safe
+1. Every element in `constraints.preserve` is present and unmodified in the output [design-decision]
+2. No element in `constraints.limitations` has been violated [design-decision]
+3. Changes align with `instruction.agentPrompt` within the constraint boundaries [design-decision]
+4. All changes are within `constraints.editable` or explicitly safe [design-decision]
 
 If validation fails, revert the violating change and try an alternative approach.
 
@@ -465,18 +508,18 @@ assets) into them.
 
 Recommended section order:
 
-1. **Quick start** — the surface URLs (agents.json, facets.json, index, tile
+1. **Quick start** — the surface URLs (agents.json, facets.json, index, tile [design-decision]
    pattern, recipes, versions)
-2. **Facets** — the filter vocabulary
-3. **Decision strategy** — the registry's ladder from the Decision Strategy
+2. **Facets** — the filter vocabulary [design-decision]
+3. **Decision strategy** — the registry's ladder from the Decision Strategy [design-decision]
    section, ending with "only generate new UI if no suitable component exists"
-4. **Quality gates and declared gaps** — do-not-retrieve rules mapped to
+4. **Quality gates and declared gaps** — do-not-retrieve rules mapped to [design-decision]
    facets (costTier, requiresJs, knownLimitations), plus pointers to the
    registry's declared `gaps` (registry.config.json) and core-classes.json
    (the untiled layout/typography layer)
-5. **Component schema** — what an index record and a tile meta block contain
-6. **Patterns** — task-to-component-set guidance (Surface 6, `patterns/`) or a pointer to recipes
-7. **Output contract** — the registry's contract from the Output Contract
+5. **Component schema** — what an index record and a tile meta block contain [design-decision]
+6. **Patterns** — task-to-component-set guidance (Surface 6, `patterns/`) or a pointer to recipes [design-decision]
+7. **Output contract** — the registry's contract from the Output Contract [design-decision]
    section
 
 ### agents.json — the compact machine manifest
@@ -497,38 +540,38 @@ CLI usage.
 
 When returning components to a user, include:
 
-1. **Reason** — why this component was selected over alternatives
-2. **Selected components** — file paths and titles
-3. **Constraint verification** — confirm all `constraints.preserve` elements are intact
-4. **Adaptations made** — what was changed from the source and why
-5. **Remaining work** — what the component does not yet cover
-6. **Recommended next** — what to retrieve or build next to complete the interface
+1. **Reason** — why this component was selected over alternatives [design-decision]
+2. **Selected components** — file paths and titles [design-decision]
+3. **Constraint verification** — confirm all `constraints.preserve` elements are intact [design-decision]
+4. **Adaptations made** — what was changed from the source and why [design-decision]
+5. **Remaining work** — what the component does not yet cover [design-decision]
+6. **Recommended next** — what to retrieve or build next to complete the interface [design-decision]
 
 ## Quality Gates
 
 Each registry may define its own quality gates. Common patterns:
 
-- Don't retrieve `tier: needs-review` components unless no alternative exists
-- Don't use heavy/expensive components for mobile-primary contexts
-- Don't use pointer-only interactions for touch-only contexts without a fallback
-- Check `requiresJs` if the project prefers CSS-only solutions
-- Check `govCompliance` if the project has legal accessibility requirements
+- Don't retrieve `tier: needs-review` components unless no alternative exists [design-decision]
+- Don't use heavy/expensive components for mobile-primary contexts [design-decision]
+- Don't use pointer-only interactions for touch-only contexts without a fallback [design-decision]
+- Check `requiresJs` if the project prefers CSS-only solutions [design-decision]
+- Check `govCompliance` if the project has legal accessibility requirements [design-decision]
 
 ## Decision Strategy
 
 When solving a UI task, follow this order:
 
-1. Understand the requested outcome
-2. Infer the component type needed
-3. Search the index, filtering by relevant facets
-4. Prefer existing components over generating new UI from scratch
-5. Prefer simpler/cheaper components unless the task requires more
-6. Prefer accessible and mobile-ready components by default
-7. Read `selection.useWhen` and `selection.avoidWhen` to confirm fit
-8. Read `constraints.preserve` before making any changes
-9. Follow `instruction.agentPrompt` within constraint boundaries
-10. Verify all `constraints.preserve` elements are intact in output
-11. Only generate new UI if no suitable component exists in the registry
+1. Understand the requested outcome [design-decision]
+2. Infer the component type needed [design-decision]
+3. Search the index, filtering by relevant facets [design-decision]
+4. Prefer existing components over generating new UI from scratch [design-decision]
+5. Prefer simpler/cheaper components unless the task requires more [design-decision]
+6. Prefer accessible and mobile-ready components by default [design-decision]
+7. Read `selection.useWhen` and `selection.avoidWhen` to confirm fit [design-decision]
+8. Read `constraints.preserve` before making any changes [design-decision]
+9. Follow `instruction.agentPrompt` within constraint boundaries [design-decision]
+10. Verify all `constraints.preserve` elements are intact in output [design-decision]
+11. Only generate new UI if no suitable component exists in the registry [design-decision]
 
 ## Cross-Design System Transfer
 
@@ -538,19 +581,19 @@ The registry protocol supports adapting components from one design system to ano
 
 The v2 metadata schema separates **portable invariants** (semantic HTML, ARIA, behavior attributes) from **design-system-specific preserves** (CSS classes, design tokens). This separation enables an agent to:
 
-1. Keep portable invariants intact across any design system
-2. Replace design-system-specific classes using `portability.classMapping`
-3. Validate the result against the original tile's rendered output (oracle-driven validation)
+1. Keep portable invariants intact across any design system [design-decision]
+2. Replace design-system-specific classes using `portability.classMapping` [design-decision]
+3. Validate the result against the original tile's rendered output (oracle-driven validation) [design-decision]
 
 ### Transfer Flow
 
 ```
-1. Fetch source tile from this registry
-2. Parse metadata — identify portableInvariants vs preserve
-3. Look up classMapping for target design system
-4. Replace: preserve classes → classMapping equivalents
-5. Keep: portableInvariants unchanged
-6. Validate: rendered output matches source behavior
+1. Fetch source tile from this registry [design-decision]
+2. Parse metadata — identify portableInvariants vs preserve [design-decision]
+3. Look up classMapping for target design system [design-decision]
+4. Replace: preserve classes → classMapping equivalents [design-decision]
+5. Keep: portableInvariants unchanged [design-decision]
+6. Validate: rendered output matches source behavior [design-decision]
 ```
 
 ### Adapter Registries
@@ -579,10 +622,10 @@ Adapter registries are separate from component registries. They contain no tiles
 
 After cross-system adaptation, verify:
 
-1. Every `constraints.portableInvariants` element is present and unmodified
-2. CSS classes match `portability.classMapping` for the target system
-3. Visual rendering is functionally equivalent to the source tile
-4. Accessibility attributes are preserved
-5. JavaScript behavior (if any) works with the target system's runtime
+1. Every `constraints.portableInvariants` element is present and unmodified [design-decision]
+2. CSS classes match `portability.classMapping` for the target system [design-decision]
+3. Visual rendering is functionally equivalent to the source tile [design-decision]
+4. Accessibility attributes are preserved [design-decision]
+5. JavaScript behavior (if any) works with the target system's runtime [design-decision]
 
 If the target design system is not in `classMapping`, fall back to `portableInvariants` only — do not guess class mappings.

@@ -4,20 +4,20 @@
 
 Every component in the registry is a single self-contained `.html` file. The file serves two purposes simultaneously:
 
-1. **Runnable demo** — opens in a browser by double-clicking, no build step
-2. **Adaptation instructions** — contains an embedded JSON block that tells an AI agent how to safely modify the component
+1. **Runnable demo** — opens in a browser by double-clicking, no build step [design-decision]
+2. **Adaptation instructions** — contains an embedded JSON block that tells an AI agent how to safely modify the component [design-decision]
 
 ## File Requirements
 
-- **Structurally self-contained**: all markup, component class names, and
+- **Structurally self-contained**: all markup, component class names, and [design-decision]
   embedded metadata need nothing external. All CSS and JS that the registry
   itself authors is inline. Where a design system's component styling lives in
   the design system's own stylesheet (e.g., USWDS CSS), tiles rely on it — the
   appearance resolves either through the host page that loads the design
   system (the primary agent-integration flow) or through the tile's generated
   **resolved view** (see below) for standalone preview and non-browser tools.
-- **Works offline**: opens by double-click, no server required.
-- **One component per file**: each tile demonstrates one component variant.
+- **Works offline**: opens by double-click, no server required. [design-decision]
+- **One component per file**: each tile demonstrates one component variant. [design-decision]
 
 ## Tile Purity (component ground truth)
 
@@ -32,16 +32,16 @@ A tile is three layers with different governance:
 The component belongs to the design system, not the registry; the registry's
 value is the metadata around it. Therefore:
 
-1. **Metadata may change freely** — facets, guidance, coordination, patterns,
+1. **Metadata may change freely** — facets, guidance, coordination, patterns, [design-decision]
    compliance fields. This is the instruction layer, and it is the only place
    the registry authors content.
 2. **Body markup changes only as ground-truth capture or correction** — two
    admissible sources, each cited in the tile's `provenance` (`method` +
-   `source`):
-   - **Design-system source** (canon): the official template, component page,
+   `source`): [evidence: canada:F-001, uswds:F-002]
+   - **Design-system source** (canon): the official template, component page, [design-decision]
      or documented structure. Corrections move tiles *toward* the design
      system; never for convenience, invention, or restyling.
-   - **Live-site observation** (variant): a real implementation observed on a
+   - **Live-site observation** (variant): a real implementation observed on a [design-decision]
      live site, when the design system itself does not canonize the component.
      The live site is the ground truth for that variant, and the tile MUST be
      labeled `discovery.origin: "live-site"` (see Discovery Fields) so agents
@@ -54,7 +54,7 @@ value is the metadata around it. Therefore:
    and state the canonical fallback in `constraints.limitations`. An extension
    is **never** a design-system variant: it may appear or vanish between
    releases, and an agent using it must know that.
-3. **Behavior scripts are declared, not improvised** — an inline script is
+3. **Behavior scripts are declared, not improvised** — an inline script is [design-decision]
    legitimate when the tile's `instruction.behavior` contract declares
    `source: inline`, and must follow the single-handling rule when the host
    bundle is wired. Script changes are governed by the behavior contract, not
@@ -66,15 +66,15 @@ value is the metadata around it. Therefore:
 body markup with script elements excluded, and maintains
 `{tileDir}/tile-purity.json` as a git-tracked baseline.
 
-- **Baseline drift** (a tile's body changed since the last baseline) is a
+- **Baseline drift** (a tile's body changed since the last baseline) is a [design-decision]
   generation failure unless that tile's `provenance` cites ground truth
   (`method` + `source`) — with a citation, the baseline is regenerated and the
   correction is logged; without one, the generator aborts before writing
   anything.
-- `validate-registry.mjs` recomputes the hashes: a tile whose body differs
+- `validate-registry.mjs` recomputes the hashes: a tile whose body differs [design-decision]
   from the baseline is a conformance error. The check is active whenever
   `tile-purity.json` exists, so registries opt in by generating it.
-- Whitespace is normalized before hashing: formatting-only changes are not
+- Whitespace is normalized before hashing: formatting-only changes are not [design-decision]
   component changes; everything else is.
 
 ## HTML Structure
@@ -106,14 +106,14 @@ body markup with script elements excluded, and maintains
 
 The `<script type="application/json" id="{agentMetaId}">` block is the key innovation. It travels inside the tile so:
 
-- The index stays lean (no prose bloating the discovery layer)
-- One fetch returns code + instructions together
-- The agent only pays the prose cost for components it actually retrieves
+- The index stays lean (no prose bloating the discovery layer) [design-decision]
+- One fetch returns code + instructions together [design-decision]
+- The agent only pays the prose cost for components it actually retrieves [design-decision]
 
 The `agentMetaId` is configurable per registry:
-- `forever-ai-components` uses `forever-agent-meta`
-- `uswds-ai-components` uses `uswds-agent-meta`
-- Your registry can use `your-agent-meta`
+- `forever-ai-components` uses `forever-agent-meta` [design-decision]
+- `uswds-ai-components` uses `uswds-agent-meta` [design-decision]
+- Your registry can use `your-agent-meta` [design-decision]
 
 ### Dense metadata block (optional, token-budgeted)
 
@@ -122,15 +122,15 @@ id="{agentMetaId}-dense">` containing the same metadata in token-optimized
 form: short strings, no prose duplication, categories flattened. Inspired by
 Astryx's three-density doc pattern (full / translated / dense). Rules:
 
-- The dense block is a *compression* of the full block, never a second source
+- The dense block is a *compression* of the full block, never a second source [design-decision]
   of truth. On any conflict, the full block wins.
-- Required keys: `use`, `avoid`, `do`, `dont` (each a compact string array —
+- Required keys: `use`, `avoid`, `do`, `dont` (each a compact string array — [design-decision]
   `do`/`dont` flatten `selection.guidance` into `true`/`false` groups),
   `preserve` (string array), `adapt` (the `instruction.agentPrompt`, shortened).
-- Budget: the dense block's JSON must be ≤ 40% of the full block's JSON length
+- Budget: the dense block's JSON must be ≤ 40% of the full block's JSON length [design-decision]
   (enforced by the validator as a warning). If it exceeds the budget, the
   registry should trim prose rather than drop required keys.
-- Agents that already hold the full block skip the dense block; the dense
+- Agents that already hold the full block skip the dense block; the dense [design-decision]
   surface pays off in multi-component assembly, where several tiles' full meta
   would blow a single context budget.
 
@@ -142,20 +142,20 @@ without a CSS engine and cannot compute layout (geometry, inheritance, page
 chrome). A registry MAY generate a **resolved view** per tile to serve these
 consumers:
 
-- Path: co-located with the tile as `{variant}.resolved.html`
+- Path: co-located with the tile as `{variant}.resolved.html` [design-decision]
   (e.g. `infinite/button/default.html` → `infinite/button/default.resolved.html`).
   `.resolved.html` is a **reserved suffix**: `generate-index.mjs` and
   `validate-registry.mjs` skip it; it is never a tile. When present,
   `generate-index.mjs` exposes the path on the tile's index record as
   `resolvedView`, making appearance a first-class retrieval surface.
-- **Staleness**: each resolved view embeds a SHA-256 stamp of its tile source
+- **Staleness**: each resolved view embeds a SHA-256 stamp of its tile source [design-decision]
   (`resolved-from: sha256:…`). The validator errors on missing resolved views
   (when the registry declares `staticView`) and warns on stale ones.
-- Content: the tile's DOM with every element's **computed styles flattened
+- Content: the tile's DOM with every element's **computed styles flattened [design-decision]
   inline** (geometry, colors, borders, spacing, typography), page chrome
   materialized on a wrapper element, and scripts/styles/links removed. Class
   names and text content are preserved byte-for-byte.
-- Generation: `node _base/generate-resolved-view.mjs` (run from the registry
+- Generation: `node _base/generate-resolved-view.mjs` (run from the registry [design-decision]
   root; requires `npm i -D puppeteer` in the registry). Configured via
   `registry.config.json`:
 
@@ -166,12 +166,12 @@ consumers:
 }
 ```
 
-- `css` lists stylesheets injected at generation time. This is how registries
+- `css` lists stylesheets injected at generation time. This is how registries [design-decision]
   whose tiles rely on external design-system CSS (the tile-format
   self-containment exception) still resolve to their true appearance.
-- Resolved views are **generated artifacts**: never hand-edited, never indexed,
-  never counted in facet coverage. Regenerate alongside tile changes.
-- Field-test evidence (openpencil-field-test, 2026-09-22): with resolved views,
+- Resolved views are **generated artifacts**: never hand-edited, never indexed, [design-decision]
+  never counted in facet coverage. Regenerate alongside tile changes. [design-decision]
+- Field-test evidence (openpencil-field-test, 2026-09-22): with resolved views, [design-decision]
   a third-party design-tool importer produced correct node geometry, fills,
   and typography for tiles that previously collapsed to default placeholders.
 
@@ -298,11 +298,11 @@ Research on LLM-native markup languages (LLMON) demonstrates that separating ins
 
 When constraints conflict, follow this order (highest to lowest):
 
-1. **`constraints.portableInvariants`** — never modify these elements (semantic HTML, ARIA, behavior attributes). These survive cross-design system translation.
-2. **`constraints.preserve`** — never modify within the source design system (CSS classes, design tokens)
-3. **`constraints.limitations`** — respect known caveats
-4. **`instruction.agentPrompt`** — adapt within the above boundaries
-5. **`constraints.editable`** — prefer changes listed here
+1. **`constraints.portableInvariants`** — never modify these elements (semantic HTML, ARIA, behavior attributes). These survive cross-design system translation. [design-decision]
+2. **`constraints.preserve`** — never modify within the source design system (CSS classes, design tokens) [design-decision]
+3. **`constraints.limitations`** — respect known caveats [design-decision]
+4. **`instruction.agentPrompt`** — adapt within the above boundaries [design-decision]
+5. **`constraints.editable`** — prefer changes listed here [design-decision]
 
 This ordering prevents "constraint priority inversion" where a less important constraint silently overrides a more important one (Constraint Tax, 2026). The separation of `portableInvariants` from `preserve` is informed by cross-framework transfer research (Widget2Code, CVPR 2026; IntentTester, 2026) showing that abstracting intent-level invariants from implementation-level classes enables reliable adaptation across design systems.
 
@@ -358,13 +358,14 @@ by design; an agent translating a USWDS form page adds one anyway).
 Rules:
 
 - `because` is required on every entry — an omission without a stated reason
-  is a gap, not a trade-off (validator-enforced). Registry-level omissions
+  is a gap, not a trade-off (validator-enforced). [evidence: canada:F-001, uswds:F-002]
+  Registry-level omissions
   (whole concepts the design system intentionally does not tile) are declared
   in `registry.config.json` `gaps` with `status: not_part_of_design_system` —
   one concept, one name; this block records component-level trade-offs only.
-- Sacrifices record the design system's decision, not the registry author's
+- Sacrifices record the design system's decision, not the registry author's [design-decision]
   preference. When the reason traces to documentation, cite it in `note`.
-- **Index leanness rule:** `tradeoffs` never enters the discovery index; it
+- **Index leanness rule:** `tradeoffs` never enters the discovery index; it [design-decision]
   travels in the tile like all prose enrichment.
 
 ### Instruction Fields (guide adaptation)
@@ -394,19 +395,19 @@ The registry's obligation ends at publishing a complete, truthful contract;
 
 Rules:
 
-- **Details travel in the tile, never the index** — the index keeps only the
+- **Details travel in the tile, never the index** — the index keeps only the [design-decision]
   lean `requiresJs` facet; discovery stays filterable, enrichment stays
   one-fetch (same rule as all prose).
-- **`source: inline` scripts are part of the tile's self-containment
+- **`source: inline` scripts are part of the tile's self-containment [design-decision]
   guarantee** and must be dependency-free and copyable verbatim.
-- **The contract must be truthful**: a tile that renders functional only
+- **The contract must be truthful**: a tile that renders functional only [design-decision]
   with design-system JS must not claim `source: inline`.
-- **Single-handling rule**: when the implementor wires a behavior's
+- **Single-handling rule**: when the implementor wires a behavior's [design-decision]
   `source: host`/`url` bundle and the bundle already implements a component
   that also carries an `inline` script, the inline script must be omitted —
-  never double-register handlers on the same control (federal-anchor-test
+  never double-register handlers on the same control (federal-anchor-test [design-decision]
   2026-09-27: banner disclosure double-toggle when both were wired).
-- Validator hook: `validate-registry.mjs` should error on any index record
+- Validator hook: `validate-registry.mjs` should error on any index record [design-decision]
   with `requiresJs ∈ {required, optional}` whose tile lacks
   `instruction.behavior`.
 
@@ -442,19 +443,19 @@ Fields:
 
 Design rules:
 
-- **Rung legality defers to constraints.** `constraints.preserve` and
+- **Rung legality defers to constraints.** `constraints.preserve` and [design-decision]
   `portableInvariants` outrank every rung: a rung never licenses changing a
   preserved element. The ladder routes requests *around* constraints, not
   through them.
-- **The ladder is per-component, not universal.** A button with build-time
+- **The ladder is per-component, not universal.** A button with build-time [design-decision]
   token settings may omit rung 2; an alert family with five variants leans on
   rung 1. Omitting a layer declares that path closed — an agent that needs it
   climbs to the next rung instead of improvising.
-- **Rung 5 is the registry's answer to swizzle/eject** (Astryx's term): our
+- **Rung 5 is the registry's answer to swizzle/eject** (Astryx's term): our [design-decision]
   tiles are already the full component source, so ejection is inherent; the
   only gate is documentation. Divergence without a provenance record is the
   failure mode the coverage checker treats as invention.
-- **Context-qualified etiquette (optional).** A registry MAY qualify the
+- **Context-qualified etiquette (optional).** A registry MAY qualify the [design-decision]
   ladder per delivery context (static HTML, React wrapper, Drupal theme) via
   its adapter mechanism: the same component, different override etiquette per
   consumer. Each etiquette is declared, so customization stays constrained.
@@ -551,8 +552,8 @@ index stays filterable without bloat.
 ```
 
 The `classMapping` keys are design system identifiers. Each mapping provides:
-- `base`: the equivalent base class in the target system
-- `variants`: a mapping from source variant names to target variant classes
+- `base`: the equivalent base class in the target system [design-decision]
+- `variants`: a mapping from source variant names to target variant classes [design-decision]
 
 Agents use `classMapping` together with `portableInvariants` to translate a component: replace design-system-specific classes (`constraints.preserve`) with mapped equivalents (`portability.classMapping`), while keeping portable invariants intact.
 
@@ -560,8 +561,8 @@ Agents use `classMapping` together with `portableInvariants` to translate a comp
 
 Schema v1 tiles (flat structure) are still supported. The generator detects the schema version automatically:
 
-- If `_schemaVersion` is absent or `1`, fields are read from the top level
-- If `_schemaVersion` is `2`, fields are read from their categorized locations
+- If `_schemaVersion` is absent or `1`, fields are read from the top level [design-decision]
+- If `_schemaVersion` is `2`, fields are read from their categorized locations [design-decision]
 
 The generator normalizes both formats into a unified index structure.
 
@@ -640,7 +641,7 @@ relies on out-of-band knowledge or invented classes.
 
 **Authoring rule (enforced by field testing):** site customizations and
 composition layout are expressed with **inline styles or core classes** —
-never with invented component-style classes (`fr-*`, `usa-*`, `govuk-*`,
+never with invented component-style classes (`fr-*`, `usa-*`, `govuk-*`, [design-decision]
 `ecl-*` names that no tile defines). Zero invented classes is an acceptance
 criterion of the field-test procedure (zero invented classes per turn).
 

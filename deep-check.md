@@ -16,14 +16,14 @@ caused a wrong conclusion. The pitfalls are the point of the document.
 
 You cannot verify against a pin you cannot read. In order of preference:
 
-1. **An installed package** (`npm i --save-dev --no-fund <pkg>@<exact>`) —
+1. **An installed package** (`npm i --save-dev --no-fund <pkg>@<exact>`) — [design-decision]
    immutable, versioned, CI-installable. This is what USWDS, ECL and GOV.UK use.
-2. **A published stylesheet with a version header** — e.g. canada.ca's
+2. **A published stylesheet with a version header** — e.g. canada.ca's [design-decision]
    `theme.min.css` declares `v19.6.0 - 2026-08-18` in its banner. Acceptable,
    but a snapshot, not a mechanism.
-3. **A CDN** (`unpkg`, `jsdelivr`) — fine for a one-off, but pin the exact
+3. **A CDN** (`unpkg`, `jsdelivr`) — fine for a one-off, but pin the exact [design-decision]
    version in the URL. Do not use `@latest` as evidence.
-4. **The live site** — last resort; a real browser may show a different page
+4. **The live site** — last resort; a real browser may show a different page [design-decision]
    than a scripted fetch (and may not reach it at all).
 
 **Then declare it.** Add the pin, the package, and a `verification` block to
@@ -44,8 +44,8 @@ and on four registries the stale copy was a real finding.
 Ask: does this design system ship **templates**? If yes, verify markup against
 them *and* styling against the stylesheet.
 
-- **One axis (stylesheets only)** — works when every class carries style rules.
-- **Two axes (templates + stylesheets)** — required for template-based systems
+- **One axis (stylesheets only)** — works when every class carries style rules. [design-decision]
+- **Two axes (templates + stylesheets)** — required for template-based systems [design-decision]
   (govuk-frontend `.njk`, DSFR `.ejs`, ECL `.html.twig`).
 
 **Pitfall — a class in the templates may have no CSS at all.** GOV.UK's
@@ -66,7 +66,7 @@ grep for the class before acting on it.
 
 ## 4. Classify each finding into exactly one bucket
 
-Never let a binary pass/fail carry this decision. Every class lands in one of:
+Never let a binary pass/fail carry this decision. Every class lands in one of: [design-decision]
 
 | Bucket | Test | Action |
 |---|---|---|
@@ -121,4 +121,4 @@ which is the state all four registries were in before their first deep check.
 | GOV.UK | pin `"5.x"`; v3-era markup; `warning-callout` duplicated by its own v4 replacement | pre-migration drift |
 
 The common cause is not "versions change". It is that a pin was *stated* and
-never checked against anything.
+never checked against anything. [design-decision]
