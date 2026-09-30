@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "scope": "cross-registry",
+  "note": "Epistemic record for findings that apply to every registry, not to one registry's tiles. Registry-specific findings live in each registry's infinite/findings.json. See findings-ledger.md. Transcribed from the 2026-09-06/17 field tests (workspace/docs/lessons-learned.md, kept as the contemporaneous record).",
+  "findings": [
+    {
+      "id": "F-001",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "fixed",
+      "target": ["core-classes.json (all registries)"],
+      "changed": [
+        "spec: tile-format.md — Core Classes section: registries publish a core-classes.json for the untiled layout/typography layer",
+        "registry: coverage tool reads core classes from the registry instead of a hand-coded allowlist"
+      ],
+      "evidence": [
+        "13 field-test artifacts: every page rebuild needed layout/grid/typography classes outside any tile",
+        "cross-registry-tests/ (artifacts + comparison.md)"
+      ],
+      "summary": "L1 — agents assembling pages always needed an untiled layout layer, and guessed it when it was undeclared.",
+      "detail": "Every one of the 13 reimplementations reached for classes no tile provided (fr-container, govuk-width-container, usa-section, ecl-grid, fr-col-3). The fix was a per-registry manifest declaring the real, documented classes, so page assembly never depends on out-of-band knowledge or invention. Retained as a distinct concept from tiles: layout is not a component."
+    },
+    {
+      "id": "F-002",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "fixed",
+      "target": ["tile authoring rule", "class-level coverage checking"],
+      "changed": [
+        "spec: tile-format.md — site customisations and composition layout use inline styles or core classes, never invented component classes",
+        "spec: zero-invented is a T1/T2 acceptance criterion (test-procedure)",
+        "later: this rule was the ancestor of tile purity and staticView.classCheck (uswds:F-002, uswds:F-008)"
+      ],
+      "evidence": [
+        "8 invented classes caught during full-page authoring: fr-locator, usa-how-row, ecl-agenda-row, fr-summary-list, usa-section--hero, ecl-date-row, fr-col-3",
+        "cross-registry-tests/compare-coverage.mjs output"
+      ],
+      "summary": "L3 — custom patterns were being expressed as invented component classes, which is indistinguishable from a design-system class to any consumer.",
+      "detail": "Every one of the eight was a site customisation or a layout need wearing a component class name. The rule is now mechanical: a class that no tile and no core manifest defines is an error, checked per turn in the degradation tests rather than only on the final artifact. This is the finding the whole coverage discipline descends from — including the later purity baseline, which extends the same logic from classes to structure."
+    },
+    {
+      "id": "F-003",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "fixed",
+      "target": ["registry.config.json language/languages"],
+      "changed": [
+        "spec: tile-format.md — Language Fields: tile labels follow the registry's declared language(s)",
+        "registry: language declared in registry.config.json and agents.json (uswds/govuk/ecl: en; dsfr: fr; canada: en+fr with a languages facet)"
+      ],
+      "evidence": [
+        "DSFR tiles ship French strings ('Étape 2 sur 3') that leaked into translations",
+        "Canada carries a legal bilingual mandate (Official Languages Act)"
+      ],
+      "summary": "L4 — the language of tile content is a property of the registry, and agents had no way to know target-language strings would surface.",
+      "detail": "Without the declaration, an agent translating a French page into English either leaves French labels in place or invents them. A bilingual mandate is a registry attribute, not a per-tile note, because it is a legal requirement rather than a content choice."
+    },
+    {
+      "id": "F-004",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "fixed",
+      "target": ["modifier matching", "detector v2"],
+      "changed": [
+        "spec: registry.config.json modifierSeparators (added later, 2026-09-29)",
+        "later: detector v2 canonicalises spellings using config-driven separators, anchored to known families (ecl:F-001, uswds:F-008)"
+      ],
+      "evidence": [
+        "USWDS mixes usa-card-group (single dash) with usa-input--error (double dash)",
+        "Canada is Bootstrap-derived (btn-primary); GOV.UK/DSFR/ECL are BEM (--)"
+      ],
+      "summary": "L5 — modifier separators differ per design system, so any tool that assumes BEM silently misses real classes.",
+      "detail": "This surfaced as a class-coverage blind spot first (a single-separator matcher missed classes in four of six registries) and then again in the convergence detector, where spelling variants split one signal into two rows. The lesson is now a declared, config-driven value rather than a per-tool assumption — and the reason multi-namespace registries must declare every prefix."
+    },
+    {
+      "id": "F-005",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "fixed",
+      "target": ["Surface 6 patterns", "recipes"],
+      "changed": [
+        "spec: protocol.md — Surface 6 pattern guidance, with the lane rule as normative text",
+        "registry: patterns published in uswds, observations recorded elsewhere",
+        "completed later, not on this date: the acceptance run that proved the fix (uswds:F-006)"
+      ],
+      "evidence": [
+        "13 artifacts: every structural failure was composition-level, never component-level",
+        "T1 Finding 3: app-step-nav mapped four different ways across four registries",
+        "cross-registry-tests/comparison.md"
+      ],
+      "summary": "L7 — the recurring weakness was composition, not components: individual tiles were solid while pages still broke.",
+      "detail": "Individual tiles passed every mechanical check across ~500 class usages (see F-007) and pages still failed structurally. That is what a component-only metadata layer cannot express, and it is the reason the pattern surface exists. Note the two halves: this finding is the motivation, uswds:F-006 is the proof — the layer was validated by re-running the exact task that used to diverge, which resolved to the doctrine-cited composition with coverage intact."
+    },
+    {
+      "id": "F-006",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "fixed",
+      "target": ["patterns.mandatedElements", "official-identity pattern", "compatibility maps"],
+      "changed": [
+        "spec: protocol.md — pattern observations carry mandatedElements (jurisdiction + source)",
+        "registry: official-identity pattern published in uswds; Canada recipes include date-modified",
+        "spec: Surface 7 observation rules require a source on mandatedElements"
+      ],
+      "evidence": [
+        "Canada's date-modified is legally required and has no equivalent in any other registry",
+        "USWDS's identifier banner similarly unique; DSFR substitutes fr-notice, ECL merges into the header, GOV.UK/Canada omit"
+      ],
+      "summary": "L8 — legally mandated page elements have no component equivalent, so cross-registry rebuilds either invent one or drop a legal requirement.",
+      "detail": "A mandate is not a component: it cannot be satisfied by a tile because no design system ships one. Recording it as a pattern-level requirement with a jurisdiction and a source is what stops an agent from either omitting it or inventing markup for it."
+    },
+    {
+      "id": "F-007",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "clean",
+      "target": ["the retrieval flow itself"],
+      "changed": [
+        "spec: test-procedure.md — zero invented classes is a T1/T2 acceptance criterion, checked on every turn",
+        "spec: compare-coverage reads registry-published core classes (no hand-maintained allowlists in the tool)"
+      ],
+      "evidence": [
+        "0 hallucinated classes across ~500 class usages in 13 artifacts",
+        "cross-registry-tests/ (8 artifacts, 100% verified, 0 invented)"
+      ],
+      "summary": "L9 — the protocol's own discipline is the quality mechanism: agents that fetched tiles invented nothing.",
+      "detail": "Recorded as a null result deliberately, and it is the protocol's only large-scale empirical validation. Every other entry in these ledgers is find-and-fix; this one is the measurement that the fetch-don't-guess design holds under load. It is also the proof half for F-002: invented classes are banned (F-002) and this shows the ban is not theoretical. The scope of the claim matters — it is about class fidelity. Composition quality was a different story, which is what F-005 found."
+    },
+    {
+      "id": "F-008",
+      "date": "2026-09-06",
+      "kind": "sweep",
+      "result": "fixed",
+      "target": ["gaps schema", "tradeoffs block"],
+      "changed": [
+        "spec: registry.config.schema.json — gaps gain consequence + source, required when status is not_part_of_design_system",
+        "spec: tile-format.md — tradeoffs.sacrifices requires a because; registry-level omissions are gaps, not tile trade-offs",
+        "registry: 11 gaps declared across 5 registries (now doctrine-cited)"
+      ],
+      "evidence": [
+        "PSBAR/RGAA/EN 301 549/WCAG versions translate cleanly as metadata; mandates (Official Languages Act, date-modified, banner conventions) do not",
+        "DSFR/Canada have no page-level error summary *by design*"
+      ],
+      "summary": "L10 — compliance vocabularies translate between registries; mandates survive only as documented additions.",
+      "detail": "The distinction decides how a cross-registry rebuild treats an element: a vocabulary item can be mapped automatically, a mandate must be re-declared with a source. Encoding it as schema (consequence + source required for a doctrine-backed gap) is what stops an agent from 'translating' a legal requirement into something the target system does not have."
+    }
+  ]
+}

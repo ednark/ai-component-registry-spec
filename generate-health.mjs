@@ -108,6 +108,13 @@ const deepChecks = (ledger?.findings ?? []).filter((e) => e.kind === 'deep-check
 deepChecks.sort((a, b) => String(b.date).localeCompare(String(a.date)));
 const lastDeepCheck = deepChecks[0]?.date ?? null;
 
+// Open items: a "broke" finding with no recorded change. This is the first
+// thing a maintaining agent should look at — it says what is unresolved and
+// that the ledger is not merely history.
+const openItems = (ledger?.findings ?? [])
+  .filter((e) => e.result === 'broke' && !(e.changed || []).length)
+  .map((e) => ({ id: e.id, date: e.date, summary: e.summary }));
+
 const families = new Set((index?.components ?? []).map((c) => c.file.split('/')[0]));
 const obsCount = (obs?.observations ?? []).length;
 
@@ -134,7 +141,7 @@ const health = {
   observations: obsCount,
   convergenceWatchlist: obsCount ? watchlist : null,
   findings: ledger
-    ? { count: ledger.findings.length, lastDeepCheck, byResult: countBy(ledger.findings, 'result') }
+    ? { count: ledger.findings.length, lastDeepCheck, openItems, byResult: countBy(ledger.findings, 'result') }
     : null,
   conformance,
   generatedBy: '_base/generate-health.mjs',

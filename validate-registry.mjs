@@ -407,6 +407,9 @@ if (existsSync(recipesDir)) {
 }
 
 // --- Class-field completeness (registry metadata defect class) ---
+// The property came from uswds:F-010: 149/152 USWDS tiles were missing
+// uswdClass, so an entire component family was invisible to class-level
+// coverage — a missing facet does not fail, it disappears.
 // The discovery class field (uswdClass/govukClass/frClass/eclClass/canadaClass)
 // is required for class-level coverage checking. The T2 round-trip caught
 // 149/152 USWDS tiles missing it — this rule makes that defect impossible
@@ -561,7 +564,7 @@ if (patternsOnDisk) {
       f = null;
     }
     if (f) {
-      const KINDS = ['deep-check', 'sweep', 'upgrade', 'rework', 'observation', 'decision'];
+      const KINDS = ['deep-check', 'sweep', 'test', 'upgrade', 'rework', 'observation', 'decision'];
       const RESULTS = ['broke', 'fixed', 'clean', 'recorded', 'deprecated'];
       const ids = new Set();
       const list = f.findings || [];

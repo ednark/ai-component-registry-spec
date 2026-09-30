@@ -42,7 +42,7 @@ and on four registries the stale copy was a real finding.
 ## 2. Choose your axes before sweeping
 
 Ask: does this design system ship **templates**? If yes, verify markup against
-them *and* styling against the stylesheet.
+them *and* styling against the stylesheet. [evidence: spec:F-004, uswds:F-008]
 
 - **One axis (stylesheets only)** — works when every class carries style rules. [design-decision]
 - **Two axes (templates + stylesheets)** — required for template-based systems [design-decision]

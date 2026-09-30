@@ -144,7 +144,7 @@ behavior contract draws for tiles.
 **The lane rule (normative):** every substantive claim in a pattern file is a
 citation. `doctrine` entries cite design-system documentation;
 `knownFailureModes` cite field-test runs; `mandatedElements` cite the legal
-or policy source. A pattern file never authors cadence, page structure, or
+or policy source. [evidence: spec:F-006] A pattern file never authors cadence, page structure, or
 quality checklists — if a design system documents a sequence for a pattern,
 it arrives as a quoted, sourced doctrine note. The validator rejects
 uncited claims.
@@ -316,7 +316,7 @@ absent from the package is never a package variant, whatever prefix it carries.
 ### The drift register
 
 `staticView.classCheck.allowlist` is where drift becomes *tracked* state rather
-than invisible state. Every entry carries a `reason`, and reasons SHOULD fall
+than invisible state. [evidence: uswds:F-008, spec:F-008] Every entry carries a `reason`, and reasons SHOULD fall
 into the three categories the deep check distinguishes (see `deep-check.md`):
 
 - **canonical-but-unstyled** — in the templates, no CSS rules by design [evidence: govuk:F-001, uswds:F-008]
@@ -414,7 +414,7 @@ the newest `deep-check` entry.
 5. GET infinite/{file}      → fetch only the chosen tiles [design-decision]
 6. Parse metadata           → read the embedded agent-meta block [design-decision]
 7. Check _schemaVersion     → v2: read categorized fields; v1: read flat fields [design-decision]
-8. Validate selection       → confirm useWhen/avoidWhen match the task [design-decision]
+8. Validate selection       → confirm useWhen/avoidWhen match the task [evidence: spec:F-007]
 9. Adapt with constraints   → follow instruction, enforce constraints [design-decision]
 10. Verify output           → check all constraints.preserve elements are intact [design-decision]
 ```

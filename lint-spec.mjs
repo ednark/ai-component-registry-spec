@@ -88,6 +88,12 @@ const siblingRegistries = (() => {
 })();
 const ledgers = new Map(); // short name -> finding ids
 const ledgersById = new Map(); // full finding id -> registry (for reporting)
+// The spec repo has its own ledger for cross-registry findings, cited spec:F-NNN.
+try {
+  const own = JSON.parse(readFileSync(join(process.cwd(), 'findings.json'), 'utf8')).findings.map((f) => f.id);
+  ledgers.set('spec', own);
+  for (const id of own) ledgersById.set(`spec:${id}`, 'ai-component-registry-spec');
+} catch { /* no spec ledger yet — spec: citations will report as dangling */ }
 for (const reg of siblingRegistries) {
   try {
     const ids = JSON.parse(readFileSync(resolvePath(process.cwd(), '..', reg, 'infinite', 'findings.json'), 'utf8')).findings.map((f) => f.id);

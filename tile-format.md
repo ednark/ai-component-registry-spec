@@ -623,7 +623,7 @@ Registries tile **components** — but agents assembling full pages also need
 each design system's **layout/grid/typography/wrapper classes**, which are
 deliberately not components. Every registry publishes a
 `core-classes.json` manifest declaring that layer, so page assembly never
-relies on out-of-band knowledge or invented classes.
+relies on out-of-band knowledge or invented classes. [evidence: spec:F-001]
 
 ```json
 {
