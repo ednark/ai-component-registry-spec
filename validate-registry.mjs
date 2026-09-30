@@ -86,7 +86,10 @@ if (classCheck) {
     else definedClasses = new Set([...cssText.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map((m) => m[1]));
   }
 }
-const CLASS_PREFIX = classCheck?.prefix ?? 'usa-';
+const CLASS_PREFIXES = (() => {
+  const p = classCheck?.prefix ?? ['usa-'];
+  return Array.isArray(p) ? p : [p]; // string form still accepted
+})();
 
 // What the registry *declares* governs which metadata checks are hard errors.
 const declares = {
@@ -145,7 +148,7 @@ for (const file of tileFiles) {
     const used = new Set();
     for (const m of domOnly.matchAll(/class="([^"]+)"/g)) {
       for (const c of m[1].split(/\s+/)) {
-        if (c.startsWith(CLASS_PREFIX)) used.add(c);
+        if (CLASS_PREFIXES.some((p) => c.startsWith(p))) used.add(c);
       }
     }
     for (const c of used) {

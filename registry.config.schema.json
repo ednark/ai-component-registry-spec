@@ -123,8 +123,10 @@
           "description": "Class ground-truth validation: every tile-DOM class with `prefix` must be defined by the staticView.css stylesheets or allowlisted here (with reason). Catches hallucinated design-system classes.",
           "properties": {
             "prefix": {
-              "type": "string",
-              "default": "usa-"
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["usa-"],
+              "description": "Class prefixes this design system uses — one per namespace. Registries whose components span several (GOV.UK's govuk-/gem-/app-, canada.ca's wb-/btn-/form-/gc-) must declare all of them, otherwise those classes are silently unchecked. A bare string is still accepted."
             },
             "allowlist": {
               "type": "array",
