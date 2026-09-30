@@ -323,7 +323,7 @@ This ordering prevents "constraint priority inversion" where a less important co
 
 Guidance entries carry task-level quality rules that field tests showed agents
 drift on when absent (T5 `t5-001`: relative-only countdowns in time-sensitive
-warnings, opaque commitment actions — see `lessons-learned.md` L11/L12). A
+warnings, opaque commitment actions — field-test evidence, 2026-09-17). A
 `false` entry is a prohibition, not a suggestion.
 
 ### Trade-off Fields (deliberate design, recorded as data)
@@ -634,7 +634,7 @@ relies on out-of-band knowledge or invented classes.
 composition layout are expressed with **inline styles or core classes** —
 never with invented component-style classes (`fr-*`, `usa-*`, `govuk-*`,
 `ecl-*` names that no tile defines). Zero invented classes is an acceptance
-criterion of the field-test procedure (`test-procedure.md`).
+criterion of the field-test procedure (zero invented classes per turn).
 
 ### Language Fields
 

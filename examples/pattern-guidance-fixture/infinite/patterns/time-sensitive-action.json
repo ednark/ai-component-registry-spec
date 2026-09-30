@@ -8,7 +8,7 @@
     { "source": "Design-system time-sensitive-warning guidance (citation fixture)", "note": "state dates in absolute terms" }
   ],
   "knownFailureModes": [
-    { "run": "task-usability/runs/t5-001", "lesson": "L11", "note": "relative-only countdown drifted in across turns 0–2" }
+    { "run": "T5 degradation run t5-001 (2026-09-17)", "lesson": "L11", "note": "relative-only countdown drifted in across turns 0–2" }
   ],
   "mandatedElements": [
     { "name": "date-modified", "source": "Standard on Web Accessibility (citation fixture)", "note": "legally required page element with no component equivalent" }

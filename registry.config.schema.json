@@ -38,6 +38,31 @@
         "package": {
           "type": "string",
           "description": "npm package carrying the pinned design-system release (e.g. @uswds/uswds). Its devDependency must match designSystem.version exactly — the validator cross-checks the pin (protocol.md Design-System Version Sync)."
+        },
+        "verification": {
+          "type": "object",
+          "description": "How this registry proves its tiles match the pin (protocol.md Verification strategy; procedure in deep-check.md). Declare it so the check is repeatable rather than remembered.",
+          "properties": {
+            "markup": {
+              "type": "string",
+              "enum": ["package-templates", "package-css", "live-html", "none"],
+              "description": "What proves a class or structure is canon. Set with 'styling' when the design system ships templates: a class can be canonical markup with no CSS rules."
+            },
+            "styling": {
+              "type": "string",
+              "enum": ["package-css", "live-css", "none"],
+              "description": "What proves a class carries style rules."
+            },
+            "packagePath": {
+              "type": "string",
+              "description": "Path to the stylesheet/templates inside the registry (also referenced by staticView.css)"
+            },
+            "groundTruth": {
+              "type": "string",
+              "enum": ["installed-package", "live-site", "documentation"],
+              "description": "installed-package is immutable and CI-installable; live-site is a snapshot, not a mechanism"
+            }
+          }
         }
       }
     },

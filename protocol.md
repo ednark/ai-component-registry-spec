@@ -168,7 +168,7 @@ A pattern is a static JSON file alongside the tiles:
     { "source": "USWDS time-sensitive-warning guidance", "url": "https://designsystem.digital.gov/patterns/", "note": "state dates in absolute terms" }
   ],
   "knownFailureModes": [
-    { "run": "task-usability/runs/t5-001", "lesson": "L11", "note": "relative-only countdown drifted in across turns 0–2" }
+    { "run": "T5 degradation run t5-001 (2026-09-17)", "lesson": "L11", "note": "relative-only countdown drifted in across turns 0–2" }
   ],
   "mandatedElements": [
     { "name": "date-modified", "jurisdictions": ["canada"], "source": "Standard on Web Accessibility", "note": "legally required page element with no component equivalent" }
@@ -224,8 +224,8 @@ GET {base}/infinite/observations.json
       "family": "alert",
       "kind": "extension",
       "extension": "usa-alert--no-collapse",
-      "note": "alert rendered without the collapse control",
-      "source": "field-research/agency-survey-2026-09"
+      "note": "alert rendered without the leading icon",
+      "source": "surveys/2026-09-agency-survey"
     }
   ]
 }
@@ -258,11 +258,73 @@ with mechanical drift detection.
 ### The pin
 
 - `designSystem.version` — the exact pinned release (no ranges)
-- `designSystem.package` — optional npm package carrying that release (e.g.
+- `designSystem.package` — the npm package carrying that release (e.g.
   `@uswds/uswds`), whose devDependency must match the pin exactly
-- Cross-checked everywhere the version appears: `package.json` (when
-  `designSystem.package` is declared), `versions.json`, `agents.json` —
-  disagreement is a conformance error
+- Cross-checked everywhere the version appears: `package.json`,
+  `versions.json`, `agents.json` — disagreement is a conformance error
+
+### Verification strategy (how a registry proves its tiles)
+
+A pin is only meaningful if something checks tiles against it. A registry
+declares its own ground truth in `designSystem.verification`, because no two
+design systems verify the same way:
+
+```json
+"designSystem": {
+  "version": "6.5.1",
+  "package": "govuk-frontend",
+  "verification": {
+    "markup": "package-templates",
+    "styling": "package-css",
+    "packagePath": "node_modules/govuk-frontend/dist/govuk",
+    "groundTruth": "installed package (exact devDependency)"
+  }
+}
+```
+
+| Field | Values | Meaning |
+|-------|--------|---------|
+| `markup` | `package-templates` \| `package-css` \| `live-html` \| `none` | what proves a class/structure is canon |
+| `styling` | `package-css` \| `live-css` \| `none` | what proves a class is styled |
+| `packagePath` | path | where the stylesheet/templates live in the registry |
+| `groundTruth` | `installed-package` \| `live-site` \| `documentation` | the source of record |
+
+**Two-axis verification** (`markup` + `styling` both set) is required when a
+design system ships templates: a class can be **canonical markup with no CSS
+rules**. GOV.UK's `govuk-table__head` is in the v6 templates but carries no
+styles (v4+ styles `__header`/`__cell`); a styling-only check misreads it as
+drift and will "correct" a correct tile. Verify markup before styling.
+
+Prefer `installed-package` over `live-site`: a versioned package is immutable
+and CI-installable, while a live stylesheet changes under you. A registry that
+has no package (e.g. a registry mirroring a live site rather than a published
+library) declares `live-css` and accepts that its verification is a snapshot,
+not a mechanism.
+
+### The app layer
+
+A design system may have a **presentation/app layer outside its package** —
+GOV.UK publishes `govuk-frontend` and separately `govuk-publishing-frontend`
+(the `layout-*`, `gem-*`, `app-*` classes that render www.gov.uk). The class
+prefix alone does not tell you which layer a class belongs to.
+
+Registries whose design system has an app layer SHOULD record app-layer tiles
+with `discovery.origin: "live-site"` and a `limitations` note naming the
+publishing layer, so an agent can tell canon from presentation. A class that is
+absent from the package is never a package variant, whatever prefix it carries.
+
+### The drift register
+
+`staticView.classCheck.allowlist` is where drift becomes *tracked* state rather
+than invisible state. Every entry carries a `reason`, and reasons SHOULD fall
+into the three categories the deep check distinguishes (see `deep-check.md`):
+
+- **canonical-but-unstyled** — in the templates, no CSS rules by design
+- **app layer** — publishing/presentation layer, not a package component
+- **pre-migration drift** — predates the pinned version; rework pending
+
+A registry that grows an allowlist is telling the truth about its drift; a
+registry that silently passes is not necessarily correct.
 
 ### Per-tile verification stamps
 

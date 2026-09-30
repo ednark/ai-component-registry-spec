@@ -36,7 +36,7 @@
     },
     {
       "name": "ecl-ai-components",
-      "designSystem": "Europa Component Library (ECL) 5.2",
+      "designSystem": "Europa Component Library (ECL) 5.3.1",
       "domain": "European Commission / EU institutions",
       "agentsJson": "https://raw.githubusercontent.com/ednark/ecl-ai-components/main/agents.json",
       "tileCount": 36,
