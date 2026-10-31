@@ -150,14 +150,25 @@ if (classCheck?.package && definedClasses) {
       for (const [, value] of source.matchAll(/class="([^"]*)"/g)) {
         value.split(/\s+/).filter((cls) => /^[\w:-]+$/.test(cls)).forEach((cls) => definedClasses.add(cls));
       }
-      // Record the ELEMENT each class is demonstrated on (element contract,
-      // §D). Only the tag-adjacent form counts: `<button class="usa-x">` proves
-      // `button.usa-x`; a bare `.usa-x` selector in JS proves nothing about tags.
-      for (const { tag, classes } of tokenizeMarkup(source)) {
-        for (const c of classes) {
-          if (!CLASS_PREFIXES.some((p) => c.startsWith(p))) continue;
-          if (!tagContract.has(c)) tagContract.set(c, new Set());
-          tagContract.get(c).add(tag);
+      // Record ELEMENT contracts, but only where the evidence is hard (§D,
+      // narrowed): the tag must DIRECTLY qualify the class in a design-system
+      // CSS or JS selector (`button.usa-accordion__button[aria-controls]`),
+      // not merely co-occur in a template.
+      //
+      // Twig demo markup is deliberately excluded here. A template shows one
+      // authored state, and component JS may move the class afterwards —
+      // usa-file-input is authored on the <input> but the JS removes it there
+      // and adds it to a created parent wrapper, which is the only structure
+      // the stylesheet targets (`.usa-file-input .usa-file-input__input`).
+      // Harvesting demo markup therefore flags *correct* tiles as broken.
+      if (config.staticView?.structure === true && /\.(js|css)$/.test(file)) {
+        const tagSel = new RegExp(
+          `\\b(button|input|select|textarea|ul|ol|li|nav|header|footer|section|table|legend|label|a)\\.((?:${CLASS_PREFIXES.map(escapeRe).join('|')})[\\w-]*)`,
+          'g'
+        );
+        for (const [, tag, cls] of source.matchAll(tagSel)) {
+          if (!tagContract.has(cls)) tagContract.set(cls, new Set());
+          tagContract.get(cls).add(tag.toLowerCase());
         }
       }
       // Class-name literals in templates and component JS: any prefixed token
