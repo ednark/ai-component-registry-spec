@@ -339,9 +339,13 @@ for (const file of tileFiles) {
   // filter on. If the body does not actually contain it, the tile is claiming
   // a component it does not ship — the failure mode that let breadcrumb ship
   // without usa-breadcrumb and modal/lg ship without usa-modal--lg.
-  // This needs no ground truth: it compares the tile's claim to its own body,
-  // so it also applies to registries without staticView.
-  {
+  //
+  // OPT-IN: this only makes sense for registries whose tiles are rendered
+  // markup. Implementation-guide registries (e.g. Drupal) publish prose and
+  // code samples, where uswdsClass names the class the implementation
+  // produces rather than a class in the tile body. Registries declare
+  // "claimedClassInBody": true in registry.config.json to enable it.
+  if (config.claimedClassInBody === true) {
     const claims = [
       ...String(meta.discovery?.uswdsClass ?? '').split(/\s+/),
       ...String(meta.discovery?.uswdClass ?? '').split(/\s+/),
