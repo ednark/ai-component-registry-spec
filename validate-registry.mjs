@@ -379,6 +379,12 @@ for (const file of tileFiles) {
       if (typeof v === 'string') proseSegments.push(v);
       else if (v && typeof v === 'object' && typeof v.description === 'string') proseSegments.push(v.description);
     };
+    // discovery.uswdsClass / uswdClass are the single most load-bearing class
+    // claims in a tile — they are the facet agents filter on and the value the
+    // coverage check asserts. They were previously unscanned, which let an
+    // invented class (usa-chart-data) survive every gate. Scan them here.
+    pushProse(meta.discovery?.uswdsClass);
+    pushProse(meta.discovery?.uswdClass);
     pushProse(meta.instruction?.agentPrompt);
     (Array.isArray(meta.instruction?.variants) ? meta.instruction.variants : []).forEach(pushProse);
     (Array.isArray(meta.constraints?.editable) ? meta.constraints.editable : []).forEach(pushProse);
