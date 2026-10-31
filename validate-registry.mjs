@@ -91,6 +91,47 @@ const CLASS_PREFIXES = (() => {
   return Array.isArray(p) ? p : [p]; // string form still accepted
 })();
 
+// Enrich ground truth from the design-system package itself when one is
+// installed: behavior hooks and JS mounts (e.g. usa-character-count__field)
+// are official markup with no stylesheet rule of their own. Ported from the
+// class-harvest reference implementation (registry-change-plan.md §D).
+if (classCheck?.package && definedClasses) {
+  const pkgDir = join(ROOT, classCheck.package);
+  if (!existsSync(pkgDir)) {
+    warn(`staticView.classCheck.package not found at ${classCheck.package} — package harvest skipped`);
+  } else {
+    const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const walk = (dir, exts, out = []) => {
+      for (const name of readdirSync(dir)) {
+        const full = join(dir, name);
+        if (statSync(full).isDirectory()) walk(full, exts, out);
+        else if (exts.some((e) => name.endsWith(e))) out.push(full);
+      }
+      return out;
+    };
+    const prefRe = new RegExp(`^(${CLASS_PREFIXES.map(escapeRe).join('|')})`);
+    for (const file of walk(pkgDir, ['.twig', '.js', '.css'])) {
+      let source = readFileSync(file, 'utf-8');
+      // Resolve class-name constants, e.g. `const CHARACTER_COUNT_CLASS = \`usa-character-count\`;`
+      const constRe = new RegExp(`const (\\w+) = \`(${CLASS_PREFIXES.map(escapeRe).join('|')}[\\w-]+)\`;`, 'g');
+      for (const [, name, value] of source.matchAll(constRe)) {
+        source = source.replaceAll(`\${${name}}`, value);
+      }
+      source = source.replaceAll('${PREFIX}', prefRe.source); // best effort; template constants handled above
+      for (const [, value] of source.matchAll(/class="([^"]*)"/g)) {
+        value.split(/\s+/).filter((cls) => /^[\w:-]+$/.test(cls)).forEach((cls) => definedClasses.add(cls));
+      }
+      // Class-name literals in templates and component JS: any prefixed token
+      // in package source IS official markup, even if the stylesheet never
+      // styles it.
+      for (const p of CLASS_PREFIXES) {
+        const litRe = new RegExp(escapeRe(p) + '[\\w-]+', 'g');
+        for (const [cls] of source.matchAll(litRe)) definedClasses.add(cls);
+      }
+    }
+  }
+}
+
 // What the registry *declares* governs which metadata checks are hard errors.
 const declares = {
   coordination: additionalFields.includes('coordination') || facets.some((f) => ['costTier', 'prerequisites'].includes(f)),
@@ -154,6 +195,26 @@ for (const file of tileFiles) {
     for (const c of used) {
       if (definedClasses.has(c) || classAllow.has(c)) continue;
       error(`${relPath}: class "${c}" is not defined by the design-system stylesheet (staticView.css) and not allowlisted — ${classAllow.get(c) ?? 'hallucinated design-system class'}`);
+    }
+
+    // Preserve-list lint: classes named in constraints.preserve must exist in
+    // ground truth too — preserve lists are how invented classes propagate
+    // from tile to tile (registry-change-plan.md §D). Entries that explicitly
+    // negate a class ("X is not a USWDS class; …") are negative guidance, not
+    // preserve instructions, and are skipped.
+    const NEGATIVE_ENTRY = /\b(?:is|are)\s+not\b/i;
+    const preserveStrings = meta.constraints?.preserve || [];
+    const preserveClasses = new Set();
+    for (const s of Array.isArray(preserveStrings) ? preserveStrings : []) {
+      if (NEGATIVE_ENTRY.test(String(s))) continue;
+      for (const tok of String(s).matchAll(/[A-Za-z][\w:-]*/g)) {
+        const c = tok[0];
+        if (CLASS_PREFIXES.some((p) => c.startsWith(p))) preserveClasses.add(c);
+      }
+    }
+    for (const c of preserveClasses) {
+      if (definedClasses.has(c) || classAllow.has(c)) continue;
+      error(`${relPath}: constraints.preserve names class "${c}" which is not defined by the design system and not allowlisted — preserve lists must only cite real classes`);
     }
   }
 
@@ -230,6 +291,21 @@ for (const file of tileFiles) {
     }
     if (prov.method === 'coverage audit' && tier !== undefined && tier !== 'design-system-docs') {
       error(`${relPath}: provenance.method "coverage audit" requires provenance.tier "design-system-docs"`);
+    }
+  }
+
+  // requiresJs ↔ limitations honesty (heuristic, warning-level): a tile
+  // claiming no JS whose limitations say a behavior requires JavaScript may be
+  // self-contradictory (the banner/default defect class) — or may be honestly
+  // noting that an additional behavior (e.g. table sorting) needs script.
+  // Surfaced as a worklist warning; the provable contradiction (behavior
+  // contract vs requiresJs) is enforced above as an error.
+  {
+    const tileRequires = meta.discovery?.requiresJs ?? meta.requiresJs;
+    const lims = meta.constraints?.limitations || meta.constraints?.knownLimitations || [];
+    const claimsJs = lims.some((l) => /\b(?:requires?|needs?)\s+(?:javascript|js)\b/i.test(String(l)));
+    if (tileRequires === 'no' && claimsJs) {
+      warn(`${relPath}: requiresJs "no" but limitations state a behavior requires JavaScript — verify the JS claim refers to additional behavior, not this tile's own contract (banner/default defect class)`);
     }
   }
 
@@ -412,6 +488,9 @@ if (existsSync(recipesDir)) {
   else {
     try {
       const manifest = JSON.parse(readFileSync(indexFile, 'utf-8'));
+      if (manifest.count !== undefined && manifest.count !== (manifest.recipes || []).length) {
+        error(`recipes/index.json: count (${manifest.count}) != actual recipe entries (${(manifest.recipes || []).length})`);
+      }
       for (const r of manifest.recipes || []) {
         if (!existsSync(join(TILE_DIR, 'recipes', `${r.name}.json`))) error(`recipes/index.json: ${r.name} has no recipe file`);
         if (!declaredRecipeNames.has(r.name) && declaredRecipeNames.size) warn(`recipes/index.json: ${r.name} not found on disk`);
@@ -749,6 +828,9 @@ if (patternsOnDisk) {
         const a = JSON.parse(readFileSync(aPath, 'utf-8'));
         if (a.designSystem?.version && a.designSystem.version !== pin) {
           error(`agents.json designSystem.version (${a.designSystem.version}) != design-system pin (${pin})`);
+        }
+        if (a.count !== undefined && a.count !== metaById.size) {
+          error(`agents.json count (${a.count}) != tile count (${metaById.size}) — regenerate agents.json`);
         }
       } catch (e) {
         warn(`agents.json unreadable: ${e.message}`);
