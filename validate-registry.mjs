@@ -209,6 +209,30 @@ for (const file of tileFiles) {
     }
   }
 
+  // provenance.tier — authoritative-source hierarchy (design-system-source >
+  // design-system-docs > maintainer-guidance > observed-behavior). Optional;
+  // when present it must be a real tier and must agree with provenance.method.
+  {
+    const TIER_VALUES = ['design-system-source', 'design-system-docs', 'maintainer-guidance', 'observed-behavior'];
+    const prov = meta.provenance || {};
+    const tier = prov.tier;
+    if (tier !== undefined && !TIER_VALUES.includes(tier)) {
+      error(`${relPath}: provenance.tier must be one of ${TIER_VALUES.join(' | ')}`);
+    }
+    if (tier === 'observed-behavior' && prov.method !== 'live-site observation') {
+      error(`${relPath}: provenance.tier "observed-behavior" requires provenance.method "live-site observation"`);
+    }
+    if (prov.method === 'live-site observation' && tier !== undefined && tier !== 'observed-behavior') {
+      error(`${relPath}: provenance.method "live-site observation" requires provenance.tier "observed-behavior"`);
+    }
+    if (prov.method === 'design-system documentation' && tier !== undefined && !['design-system-source', 'design-system-docs'].includes(tier)) {
+      error(`${relPath}: provenance.method "design-system documentation" requires provenance.tier "design-system-source" or "design-system-docs"`);
+    }
+    if (prov.method === 'coverage audit' && tier !== undefined && tier !== 'design-system-docs') {
+      error(`${relPath}: provenance.method "coverage audit" requires provenance.tier "design-system-docs"`);
+    }
+  }
+
   // selection.guidance — machine-readable do/don't pairs (schema v2, additive).
   if (meta.selection?.guidance !== undefined) {    if (!Array.isArray(meta.selection.guidance)) {
       error(`${relPath}: selection.guidance must be an array`);

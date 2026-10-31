@@ -606,6 +606,7 @@ coverage claims.
 | `provenance.observed` | date | when the variant was observed/derived (YYYY-MM-DD) |
 | `provenance.source` | string | URL of the site or documentation page where it was observed |
 | `provenance.method` | enum | `live-site observation` \| `design-system documentation` \| `coverage audit` |
+| `provenance.tier` | enum | which authoritative source stands behind the tile body, in descending order of authority: `design-system-source` (the pinned design-system package's own templates/JS — highest authority for what renders), `design-system-docs` (official documentation pages), `maintainer-guidance` (issue queues, changelogs, release notes), `observed-behavior` (a live site or installed implementation). Optional; registries adopt it when they want the source hierarchy queryable. Must be consistent with `method`: `live-site observation` requires `observed-behavior`; `design-system documentation` requires `design-system-source` or `design-system-docs`; `coverage audit` requires `design-system-docs`. Provenance stays in the tile per the leanness rule below. |
 | `provenance.designSystemVersion` | string | design-system version this tile's body was last verified against. Set at capture; `generate-index.mjs` re-stamps it automatically when a purity re-baseline occurs (a cited correction is a re-verification against the current pin). Stale or missing stamps are an aggregated worklist warning, never an error — see protocol.md "Design-System Version Sync". |
 
 **Index leanness rule:** provenance stays in the tile; it is never copied into
