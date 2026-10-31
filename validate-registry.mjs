@@ -113,11 +113,15 @@ if (classCheck?.package && definedClasses) {
     for (const file of walk(pkgDir, ['.twig', '.js', '.css'])) {
       let source = readFileSync(file, 'utf-8');
       // Resolve class-name constants, e.g. `const CHARACTER_COUNT_CLASS = \`usa-character-count\`;`
-      const constRe = new RegExp(`const (\\w+) = \`(${CLASS_PREFIXES.map(escapeRe).join('|')}[\\w-]+)\`;`, 'g');
-      for (const [, name, value] of source.matchAll(constRe)) {
-        source = source.replaceAll(`\${${name}}`, value);
+      // — replace ${PREFIX} FIRST so `${PREFIX}-led` constants resolve too,
+      // and run two passes for chained constants (${A} inside ${B}'s value).
+      source = source.replaceAll('${PREFIX}', CLASS_PREFIXES[0].replace(/-$/, ''));
+      for (let pass = 0; pass < 2; pass++) {
+        const constRe = new RegExp(`const (\\w+) = \\\`(${CLASS_PREFIXES.map(escapeRe).join('|')}[\\w-]+)\\\`;`, 'g');
+        for (const [, name, value] of source.matchAll(constRe)) {
+          source = source.replaceAll(`\${${name}}`, value);
+        }
       }
-      source = source.replaceAll('${PREFIX}', prefRe.source); // best effort; template constants handled above
       for (const [, value] of source.matchAll(/class="([^"]*)"/g)) {
         value.split(/\s+/).filter((cls) => /^[\w:-]+$/.test(cls)).forEach((cls) => definedClasses.add(cls));
       }
@@ -178,14 +182,21 @@ for (const file of tileFiles) {
 
   metaById.set(relPath, meta);
 
+  // Shared per-tile DOM projection (scripts/styles excluded; code/pre are
+  // documentation, not live markup) — used by the class gate, behavior
+  // selectors, and ARIA cross-references.
+  const domHtml = html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<(code|pre)[\s\S]*?<\/\1>/gi, '');
+  const domClasses = new Set();
+  for (const m of domHtml.matchAll(/class="([^"]+)"/g)) m[1].split(/\s+/).forEach((c) => c && domClasses.add(c));
+  const domIds = new Set();
+  for (const m of domHtml.matchAll(/\sid="([^"]+)"/g)) domIds.add(m[1]);
+
   // Class ground truth: DOM classes must exist in the design-system stylesheet.
   if (definedClasses) {
-    const domOnly = html
-      .replace(/<script[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[\s\S]*?<\/style>/gi, '')
-      // Documentation tiles show class strings inside code samples; those are
-      // documentation, not live markup.
-      .replace(/<(code|pre)[\s\S]*?<\/\1>/gi, '');
+    const domOnly = domHtml;
     const used = new Set();
     for (const m of domOnly.matchAll(/class="([^"]+)"/g)) {
       for (const c of m[1].split(/\s+/)) {
@@ -215,6 +226,40 @@ for (const file of tileFiles) {
     for (const c of preserveClasses) {
       if (definedClasses.has(c) || classAllow.has(c)) continue;
       error(`${relPath}: constraints.preserve names class "${c}" which is not defined by the design system and not allowlisted — preserve lists must only cite real classes`);
+    }
+
+    // Prose class citations (§D): agentPrompt, editable, guidance, useWhen/
+    // avoidWhen, and variants are the remaining hallucination surface —
+    // metadata strings must only cite real classes. String-level negation
+    // skip: entries that explicitly negate a class ("X is not a USWDS
+    // class", "do not invent", "removed") are negative guidance. Whole-string
+    // skip is conservative — it trades some coverage for zero false
+    // positives on mixed sentences with abbreviations ("e.g.").
+    const NEG_SEGMENT = /\b(?:is|are)\s+not\b|\bdo(?:es)?\s+not\b|\bdon'?t\b|\bnever\b|\bremoved\b|\bnot\s+canonical?\b|\bnot\s+(?:a\s+)?real\b|\bnot\s+in\b|\bhas\s+no\b|\bno\s+[\w.-]+\s+class\b/i;
+    const proseSegments = [];
+    const pushProse = (v) => {
+      if (typeof v === 'string') proseSegments.push(v);
+      else if (v && typeof v === 'object' && typeof v.description === 'string') proseSegments.push(v.description);
+    };
+    pushProse(meta.instruction?.agentPrompt);
+    (Array.isArray(meta.instruction?.variants) ? meta.instruction.variants : []).forEach(pushProse);
+    (Array.isArray(meta.constraints?.editable) ? meta.constraints.editable : []).forEach(pushProse);
+    (Array.isArray(meta.constraints?.limitations) ? meta.constraints.limitations : []).forEach(pushProse);
+    (Array.isArray(meta.selection?.useWhen) ? meta.selection.useWhen : []).forEach(pushProse);
+    (Array.isArray(meta.selection?.avoidWhen) ? meta.selection.avoidWhen : []).forEach(pushProse);
+    (Array.isArray(meta.selection?.guidance) ? meta.selection.guidance : []).forEach(pushProse);
+    (Array.isArray(meta.coordination?.agentPromptSequence) ? meta.coordination.agentPromptSequence : []).forEach(pushProse);
+    const proseTokens = new Set();
+    for (const s of proseSegments) {
+      if (NEG_SEGMENT.test(s)) continue;
+      for (const tok of s.matchAll(/[A-Za-z][\w:-]*/g)) {
+        const c = tok[0].replace(/-+$/, '');
+        if (c.length > 3 && CLASS_PREFIXES.some((p) => c.startsWith(p))) proseTokens.add(c);
+      }
+    }
+    for (const c of proseTokens) {
+      if (definedClasses.has(c) || classAllow.has(c)) continue;
+      error(`${relPath}: prose cites class "${c}" which is not defined by the design system and not allowlisted`);
     }
   }
 
@@ -292,6 +337,17 @@ for (const file of tileFiles) {
     if (prov.method === 'coverage audit' && tier !== undefined && tier !== 'design-system-docs') {
       error(`${relPath}: provenance.method "coverage audit" requires provenance.tier "design-system-docs"`);
     }
+  }
+
+  // ARIA/id cross-references: a reference the tile itself does not satisfy is
+  // an a11y defect and a classic hallucination artifact (fabricated ids).
+  for (const m of domHtml.matchAll(/aria-(controls|describedby|labelledby|owns)="([^"]+)"/g)) {
+    for (const id of m[2].split(/\s+/)) {
+      if (id && !domIds.has(id)) error(`${relPath}: aria-${m[1]}="${id}" references an id the tile does not define`);
+    }
+  }
+  for (const m of domHtml.matchAll(/\sfor="([^"]+)"/g)) {
+    if (m[1] && !domIds.has(m[1])) error(`${relPath}: label for="${m[1]}" references an id the tile does not define`);
   }
 
   // requiresJs ↔ limitations honesty (heuristic, warning-level): a tile
@@ -403,6 +459,42 @@ for (const file of tileFiles) {
         if (!['host', 'inline', 'url'].includes(behavior.source)) error(`${relPath}: behavior.source must be one of: host, inline, url`);
         if (behavior.source === 'url' && typeof behavior.script !== 'string') error(`${relPath}: behavior.source "url" needs a script URL`);
         if (behavior.source === 'host' && typeof behavior.script !== 'string') error(`${relPath}: behavior.source "host" needs the design-system bundle name`);
+
+        // Behavior selectors are contracts, not prose: every cited selector
+        // must resolve against the tile's own markup (§D — the mechanical
+        // half of behavior conformance; the interactive half is the runner).
+        const checkSelector = (sel, label) => {
+          if (typeof sel !== 'string' || !sel.trim()) return;
+          for (const m of sel.matchAll(/\.([A-Za-z][\w-]*)/g)) {
+            if (!domClasses.has(m[1])) error(`${relPath}: behavior ${label} cites ".${m[1]}" — not present in the tile markup`);
+          }
+          for (const m of sel.matchAll(/#([\w-]+)/g)) {
+            if (!domIds.has(m[1])) error(`${relPath}: behavior ${label} cites "#${m[1]}" — not present in the tile markup`);
+          }
+        };
+        for (const t of Array.isArray(behavior.triggers) ? behavior.triggers : []) {
+          checkSelector(t?.control, 'trigger control');
+          checkSelector(t?.target, 'trigger target');
+        }
+        if (behavior.focus && typeof behavior.focus === 'object') {
+          checkSelector(behavior.focus.onOpen, 'focus.onOpen');
+          checkSelector(behavior.focus.onClose, 'focus.onClose');
+          checkSelector(behavior.focus.onAnimationEnd, 'focus.onAnimationEnd');
+        }
+        // Runtime classes (bodyClass, state classes) are applied by JS at
+        // runtime — checked against ground truth (package harvest), not the
+        // static DOM.
+        const runtimeClass = (v, label) => {
+          if (typeof v !== 'string') return;
+          const c = v.trim().replace(/^-+|-+$/g, '');
+          if (c && CLASS_PREFIXES.some((p) => c.startsWith(p)) && !definedClasses.has(c) && !classAllow.has(c)) {
+            error(`${relPath}: behavior ${label} "${c}" is not in design-system ground truth and not allowlisted`);
+          }
+        };
+        runtimeClass(behavior.bodyClass, 'bodyClass');
+        for (const st of Object.values(behavior.states || {})) {
+          if (st && typeof st === 'object') for (const v of Object.values(st)) runtimeClass(v, 'state');
+        }
         if (typeof behavior.init !== 'string' || !behavior.init.trim()) error(`${relPath}: behavior.init missing — the activation contract is required`);
         if (typeof behavior.fallback !== 'string' || !behavior.fallback.trim()) error(`${relPath}: behavior.fallback missing — the no-JS rendering must be documented`);
         if (behavior.source === 'inline') {
@@ -453,6 +545,57 @@ for (const file of tileFiles) {
 
   if (declares.compliance && !meta.discovery?.compliance) warn(`${relPath}: missing discovery.compliance (registry declares compliance facets)`);
   if (declares.mobileUX && !meta.discovery?.mobileUX) warn(`${relPath}: missing discovery.mobileUX (registry declares mobileUX facets)`);
+}
+
+// --- 2b. Repo-level class citations — the untiled layer and cross-system
+// surfaces cite class names in JSON prose; only source-system prefixes are
+// checkable (target-system classes belong to other universes). Negative
+// lines ("X is not a USWDS class") are skipped, as in the tile prose scan.
+if (definedClasses) {
+  const universe = (c) => definedClasses.has(c) || classAllow.has(c);
+  const NEG_LINE = /\b(?:is|are)\s+not\b|\bdo(?:es)?\s+not\b|\bdon'?t\b|\bnever\b|\bremoved\b|\bnot\s+canonical?\b|\bnot\s+(?:a\s+)?real\b|\bnot\s+in\b|\bhas\s+no\b|\bno\s+[\w.-]+\s+class\b/i;
+  const scanJson = (relPath, text) => {
+    text.split('\n').forEach((line, i) => {
+      if (NEG_LINE.test(line)) return;
+      for (const tok of line.matchAll(/[A-Za-z][\w-]*/g)) {
+        const c = tok[0].replace(/-+$/, '');
+        if (c.length > 3 && CLASS_PREFIXES.some((p) => c.startsWith(p)) && !universe(c)) {
+          error(`${relPath}:${i + 1}: cites class "${c}" which is not in design-system ground truth and not allowlisted`);
+        }
+      }
+    });
+  };
+  const ccPath = join(TILE_DIR, 'core-classes.json');
+  if (existsSync(ccPath)) {
+    try {
+      const cc = JSON.parse(readFileSync(ccPath, 'utf-8'));
+      for (const [cat, list] of Object.entries(cc.categories || {})) {
+        for (const c of Array.isArray(list) ? list : []) {
+          if (CLASS_PREFIXES.some((p) => c.startsWith(p)) && !universe(c)) {
+            error(`core-classes.json: category "${cat}" lists "${c}" — not in design-system ground truth and not allowlisted`);
+          }
+        }
+      }
+    } catch (e) {
+      error(`core-classes.json: invalid JSON: ${e.message}`);
+    }
+  }
+  const surfaces = [];
+  const adaptersDir = join(ROOT, 'adapters');
+  if (existsSync(adaptersDir)) {
+    for (const f of readdirSync(adaptersDir)) if (f.endsWith('.json')) surfaces.push([`adapters/${f}`, readFileSync(join(adaptersDir, f), 'utf-8')]);
+  }
+  const compatPath = join(ROOT, 'compatibility.json');
+  if (existsSync(compatPath)) surfaces.push(['compatibility.json', readFileSync(compatPath, 'utf-8')]);
+  const patternsDir2 = join(TILE_DIR, 'patterns');
+  if (existsSync(patternsDir2)) {
+    for (const f of readdirSync(patternsDir2)) if (f.endsWith('.json')) surfaces.push([`patterns/${f}`, readFileSync(join(patternsDir2, f), 'utf-8')]);
+  }
+  const recipesDir2 = join(TILE_DIR, 'recipes');
+  if (existsSync(recipesDir2)) {
+    for (const f of readdirSync(recipesDir2)) if (f.endsWith('.json')) surfaces.push([`recipes/${f}`, readFileSync(join(recipesDir2, f), 'utf-8')]);
+  }
+  for (const [p, text] of surfaces) scanJson(p, text);
 }
 
 // --- 3. Recipes ---
