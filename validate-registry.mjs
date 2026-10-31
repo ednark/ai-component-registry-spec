@@ -113,8 +113,76 @@ function tokenizeMarkup(html) {
   return out;
 }
 
-// tagContract: class -> Set(tag), harvested from the package's own templates.
-const tagContract = new Map();
+// Curated element contracts (§D) — deliberately NOT inferred.
+//
+// Harvesting element requirements from the package is unsound: a demo template
+// applies a class to ONE element, and component JS may move it at init — USWDS
+// authors `input.usa-file-input`, then removes it there and adds it to a
+// created parent wrapper, which is the only structure the stylesheet targets
+// (`.usa-file-input .usa-file-input__input`). Harvested tag usage therefore
+// under-determines the legal element set in both directions and flags correct
+// tiles as broken.
+//
+// So a registry DECLARES contracts, curated by a maintainer against the pinned
+// package, and the validator enforces them as errors. Config format:
+//   "staticView": { "structure": { "enabled": true, "contracts": {
+//     "banner/default.html": [
+//       { "selector": "section.usa-banner", "note": "the banner is a labelled region" }
+//     ] } } }
+// Keys match a tile path exactly, or a component prefix ("banner/").
+const STRUCTURE_CONTRACTS = config.staticView?.structure?.contracts ?? null;
+const structureEnabled = config.staticView?.structure?.enabled === true && STRUCTURE_CONTRACTS;
+
+/**
+ * Parse markup into nodes with (tag, classes, parent). Minimal and
+ * stack-based: enough to resolve the compound/descendant selectors contracts
+ * declare, without depending on an HTML parser.
+ */
+function parseNodes(html) {
+  const nodes = [];
+  const stack = [];
+  const VOID = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/;
+  const re = /<(\/?)([a-zA-Z][\w-]*)\s*([^>]*?)(\/?)>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const tag = m[2].toLowerCase();
+    if (m[1] === '/') {
+      for (let i = stack.length - 1; i >= 0; i -= 1) {
+        if (stack[i].tag === tag) { stack.length = i; break; }
+      }
+      continue;
+    }
+    const cm = m[3].match(/class\s*=\s*"([^"]*)"/);
+    const classes = cm ? cm[1].split(/\s+/).filter(Boolean) : [];
+    const node = { tag, classes, parent: stack.length ? stack[stack.length - 1] : null };
+    nodes.push(node);
+    if (m[4] !== '/' && !VOID.test(tag)) stack.push(node);
+  }
+  return nodes;
+}
+
+function matchCompound(node, compound) {
+  const isBare = compound.startsWith('.');
+  const parts = compound.split('.').filter(Boolean);
+  // A compound starting with `.` has no tag part — only classes.
+  const tag = isBare ? '' : parts.shift();
+  if (tag && node.tag !== tag.toLowerCase()) return false;
+  return parts.every((c) => node.classes.includes(c));
+}
+
+/** Match `tag.class`, `tag.class tag.class` (descendant), or bare `.class`. */
+function matchSelector(node, selector) {
+  const chain = selector.trim().split(/\s+/).filter(Boolean);
+  if (!chain.length) return false;
+  if (!matchCompound(node, chain[chain.length - 1])) return false;
+  let i = chain.length - 2;
+  let anc = node.parent;
+  while (i >= 0 && anc) {
+    if (matchCompound(anc, chain[i])) i -= 1;
+    anc = anc.parent;
+  }
+  return i < 0;
+}
 
 // Enrich ground truth from the design-system package itself when one is
 // installed: behavior hooks and JS mounts (e.g. usa-character-count__field)
@@ -150,27 +218,8 @@ if (classCheck?.package && definedClasses) {
       for (const [, value] of source.matchAll(/class="([^"]*)"/g)) {
         value.split(/\s+/).filter((cls) => /^[\w:-]+$/.test(cls)).forEach((cls) => definedClasses.add(cls));
       }
-      // Record ELEMENT contracts, but only where the evidence is hard (§D,
-      // narrowed): the tag must DIRECTLY qualify the class in a design-system
-      // CSS or JS selector (`button.usa-accordion__button[aria-controls]`),
-      // not merely co-occur in a template.
-      //
-      // Twig demo markup is deliberately excluded here. A template shows one
-      // authored state, and component JS may move the class afterwards —
-      // usa-file-input is authored on the <input> but the JS removes it there
-      // and adds it to a created parent wrapper, which is the only structure
-      // the stylesheet targets (`.usa-file-input .usa-file-input__input`).
-      // Harvesting demo markup therefore flags *correct* tiles as broken.
-      if (config.staticView?.structure === true && /\.(js|css)$/.test(file)) {
-        const tagSel = new RegExp(
-          `\\b(button|input|select|textarea|ul|ol|li|nav|header|footer|section|table|legend|label|a)\\.((?:${CLASS_PREFIXES.map(escapeRe).join('|')})[\\w-]*)`,
-          'g'
-        );
-        for (const [, tag, cls] of source.matchAll(tagSel)) {
-          if (!tagContract.has(cls)) tagContract.set(cls, new Set());
-          tagContract.get(cls).add(tag.toLowerCase());
-        }
-      }
+      // Element contracts are no longer harvested here — they are curated in
+      // registry config and enforced in the tile loop (see STRUCTURE_CONTRACTS).
       // Class-name literals in templates and component JS: any prefixed token
       // in package source IS official markup, even if the stylesheet never
       // styles it.
@@ -308,19 +357,24 @@ for (const file of tileFiles) {
       error(`${relPath}: prose cites class "${c}" which is not defined by the design system and not allowlisted`);
     }
 
-    // Tag contracts (§D): design-system CSS and JS frequently depend on the
-    // ELEMENT a class sits on, not just the class name — e.g. USWDS selects
-    // `button.usa-accordion__button[aria-controls]`, so the class on a `<p>`
-    // silently produces an inert toggle (the banner/default defect class).
-    // A mismatch may also be a legitimate semantic choice, and the demo
-    // templates under-determine the legal tag set (they show one usage each) —
-    // so this is warning-level: triage, then fix the tile or record the
-    // divergence in `provenance`.
-    for (const { tag, classes } of tokenizeMarkup(domHtml)) {
-      for (const c of classes) {
-        const allowed = tagContract.get(c);
-        if (!allowed || allowed.has(tag)) continue;
-        warn(`${relPath}: class "${c}" is applied to <${tag}>, but the design system uses it on <${[...allowed].sort().join(' | ')}> — verify the element, or record the divergence in provenance`);
+    // Curated element contracts (§D): the registry authorizes element
+    // requirements explicitly, so a declared contract is a verified fact and a
+    // violation is an ERROR (not the earlier heuristic warning, which was
+    // unsound — see STRUCTURE_CONTRACTS above).
+    if (structureEnabled) {
+      const tileNodes = parseNodes(domHtml);
+      for (const [key, reqs] of Object.entries(STRUCTURE_CONTRACTS)) {
+        if (relPath !== key && !relPath.startsWith(key + '/')) continue;
+        for (const r of Array.isArray(reqs) ? reqs : []) {
+          if (typeof r?.selector !== 'string' || !r.selector.trim()) {
+            error(`registry.config.json: structure.contracts["${key}"] entry is missing a "selector"`);
+            continue;
+          }
+          const ok = tileNodes.some((n) => matchSelector(n, r.selector));
+          if (!ok) {
+            error(`${relPath}: element contract "${r.selector}" not satisfied${r.note ? ` — ${r.note}` : ''}`);
+          }
+        }
       }
     }
   }
