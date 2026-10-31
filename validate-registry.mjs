@@ -83,7 +83,9 @@ if (classCheck) {
   }
   if (!cssMissing) {
     if (!cssText.trim()) warn('staticView.classCheck declared but staticView.css is empty — class ground-truth check skipped');
-    else definedClasses = new Set([...cssText.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map((m) => m[1]));
+    else definedClasses = new Set([...cssText.matchAll(/\.((?:\\.|[a-zA-Z0-9_-])+)/g)]
+      .map((m) => m[1].replace(/\\(.)/g, '$1'))
+      .filter((c) => /^[a-zA-Z]/.test(c)));
   }
 }
 const CLASS_PREFIXES = (() => {
@@ -439,6 +441,28 @@ for (const file of tileFiles) {
             error(`${relPath}: cites design token "$${name}" which is not defined in the design-system settings (staticView.tokens.path)`);
           }
         }
+      }
+    }
+
+    // Class provenance (§D): every class in the body must be accounted for —
+    // a design-system class, a design-system utility, declared demo
+    // scaffolding, or a custom class documented in the tile. A class with no
+    // direction is a defect: an agent copying the tile inherits it and it does
+    // nothing. This is the only check that sees unprefixed custom classes,
+    // which every other gate ignores by design.
+    {
+      const SCAFFOLD = new Set(config.staticView?.classCheck?.scaffolding ?? []);
+      const documentedText = [
+        ...(Array.isArray(meta.constraints?.limitations) ? meta.constraints.limitations : []),
+        ...(Array.isArray(meta.constraints?.knownLimitations) ? meta.constraints.knownLimitations : []),
+        meta.provenance?.contractNote ?? '',
+        meta.provenance?.source ?? '',
+      ].join(' ');
+      for (const c of domClasses) {
+        if (definedClasses.has(c) || classAllow.has(c)) continue;
+        if (SCAFFOLD.has(c)) continue;
+        if (documentedText.includes(c)) continue;
+        error(`${relPath}: class "${c}" is not a design-system class, not a known utility, not declared scaffolding, and not documented in the tile — a class with no direction is a defect (tile-format.md "Class Provenance")`);
       }
     }
 
