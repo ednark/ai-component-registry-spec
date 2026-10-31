@@ -294,6 +294,32 @@ Research on LLM-native markup languages (LLMON) demonstrates that separating ins
 | `constraints` | **Enforce** — hard boundaries on adaptation | What must/must not change |
 | `portability` | **Translate** — cross-design system mapping | How to adapt to other design systems |
 
+### Placement Rule: Facts Travel With the Component
+
+A registry carries two kinds of agent-facing knowledge, and each has exactly
+one home. [design-decision]
+
+- **Facts travel with the component.** Anything whose answer differs from tile
+  to tile — `discovery.origin`, `provenance.tier`, behavior contracts,
+  `constraints.preserve` lists, evidence dates, compliance summaries — lives in
+  the tile's metadata (or its index-normalized discovery projection). A fact
+  must be queryable: if an agent cannot filter or diff it per component, it is
+  decoration, not data.
+- **Procedures travel with the instructions.** Decision rules that apply
+  identically to every tile — conflict resolution ("the pinned source wins for
+  what renders"), verification gates ("interact with the component after
+  wiring"), tier and origin semantics ("never present an `extension` class as
+  canon") — live in the agent entry points (AGENTS.md, llms.txt) and in this
+  spec. They are stated once, never copied into tiles.
+
+The failure modes run in opposite directions: a procedure duplicated into
+tiles drifts per copy, and no validator re-syncs 152 copies; a per-component
+fact promoted into the instructions goes stale silently, because nothing
+re-checks prose against tiles. When adding knowledge, ask: *would this answer
+differently for tile A than for tile B?* If yes, it is a fact — record it in
+the tile, with provenance. If no, it is a procedure — record it once in the
+instructions.
+
 ### Constraint Priority Order
 
 When constraints conflict, follow this order (highest to lowest):

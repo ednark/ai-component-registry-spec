@@ -220,11 +220,21 @@ function normalizeV2ToFlat(meta) {
  */
 function normalizeMeta(meta) {
   const version = meta._schemaVersion || 1;
-  if (version >= 2) {
-    return normalizeV2ToFlat(meta);
-  }
-  // v1 (flat) tiles: strip known prose fields so the index stays lean for
-  // legacy registries too — the leanness rule applies regardless of schema.
+  const flat = version >= 2
+    ? normalizeV2ToFlat(meta)
+    : normalizeV1Lean(meta);
+
+  // discovery.origin is canon ("design-system") when a tile does not label it
+  // — index-normalize the default so agents can filter doctrine from observed
+  // variants and extensions without knowing each tile's labeling vintage
+  // (tile-format.md Discovery Fields: "implied when absent").
+  if (flat.origin === undefined) flat.origin = 'design-system';
+  return flat;
+}
+
+// v1 (flat) tiles: strip known prose fields so the index stays lean for
+// legacy registries too — the leanness rule applies regardless of schema.
+function normalizeV1Lean(meta) {
   const PROSE_FIELDS = [
     'agentPrompt', 'useWhen', 'avoidWhen',
     'preserveElements', 'editableAreas', 'knownLimitations',
