@@ -133,6 +133,49 @@ function tokenizeMarkup(html) {
 const STRUCTURE_CONTRACTS = config.staticView?.structure?.contracts ?? null;
 const structureEnabled = config.staticView?.structure?.enabled === true && STRUCTURE_CONTRACTS;
 
+// Design-token ground truth (optional, config-driven). Registries that cite
+// design-system settings (USWDS `$theme-*`) declare where the official settings
+// live; tiles citing a token that no setting defines are as wrong as a
+// hallucinated class name.
+function walkFiles(dir, exts, out = []) {
+  let entries;
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return out;
+  }
+  for (const name of entries) {
+    const full = join(dir, name);
+    let st;
+    try {
+      st = statSync(full);
+    } catch {
+      continue;
+    }
+    if (st.isDirectory()) walkFiles(full, exts, out);
+    else if (exts.some((e) => name.endsWith(e))) out.push(full);
+  }
+  return out;
+}
+const tokenDir = config.staticView?.tokens?.path;
+let definedTokens = null;
+if (tokenDir) {
+  const abs = join(ROOT, tokenDir);
+  if (!existsSync(abs)) {
+    warn(`staticView.tokens.path not found at ${tokenDir} — token check skipped`);
+  } else {
+    definedTokens = new Set();
+    for (const file of walkFiles(abs, ['.scss'])) {
+      const src = readFileSync(file, 'utf-8');
+      for (const [, name] of src.matchAll(/^\$(theme-[a-zA-Z0-9-]+)/gm)) definedTokens.add(`$${name}`);
+    }
+    if (!definedTokens.size) {
+      warn(`staticView.tokens.path declared but no $theme-* settings found — token check skipped`);
+      definedTokens = null;
+    }
+  }
+}
+
 /**
  * Parse markup into nodes with (tag, classes, parent). Minimal and
  * stack-based: enough to resolve the compound/descendant selectors contracts
@@ -355,6 +398,23 @@ for (const file of tileFiles) {
     for (const c of proseTokens) {
       if (definedClasses.has(c) || classAllow.has(c)) continue;
       error(`${relPath}: prose cites class "${c}" which is not defined by the design system and not allowlisted`);
+    }
+
+    // Token citations: `instruction.settings` / `tokenOverrides` name
+    // design-system settings; an undefined token is a hallucinated setting.
+    if (definedTokens) {
+      const cites = [
+        ...(Array.isArray(meta.instruction?.settings) ? meta.instruction.settings : []),
+        ...(Array.isArray(meta.instruction?.tokenOverrides) ? meta.instruction.tokenOverrides : []),
+      ];
+      for (const c of cites) {
+        if (typeof c !== 'string') continue;
+        for (const [, name] of c.matchAll(/\$(theme-[a-zA-Z0-9-]+)/g)) {
+          if (!definedTokens.has(`$${name}`)) {
+            error(`${relPath}: cites design token "$${name}" which is not defined in the design-system settings (staticView.tokens.path)`);
+          }
+        }
+      }
     }
 
     // Curated element contracts (§D): the registry authorizes element
