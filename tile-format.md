@@ -666,6 +666,40 @@ relies on out-of-band knowledge or invented classes. [evidence: spec:F-001]
 }
 ```
 
+### Class Provenance (every class must be accounted for)
+
+A tile body is a claim about how a component is built. An agent copying a tile
+inherits **every** class in it, including ones that do nothing. So a class
+without direction is a defect: either record why it is there, or remove it.
+
+Every class in a tile body MUST fall into exactly one category: [design-decision]
+
+1. **Design-system component class** (`usa-*`) — must exist in the pinned
+   package (stylesheet, template, or component JS). Enforced as an error.
+2. **Design-system utility** (unprefixed, e.g. `padding-6`, `width-full`,
+   `grid-row`, `tablet:grid-col-6`) — must exist in the design system. These
+   are legitimate even though they carry no prefix.
+3. **Demo scaffolding** — a closed, declared vocabulary used to present the
+   tile (`.cap`, `.form-section`, `.preview-section`, `.demo-section`, and
+   per-family wrappers). It is not part of the component; consumers SHOULD
+   drop it. Registries declare the vocabulary in `registry.config.json`.
+4. **Custom component-adjacent class** — permitted ONLY when the tile carries a
+   `constraints.limitations` entry stating what the class does and that it
+   carries no design-system styles.
+
+**Anti-patterns seen in practice:**
+
+- Classes copied from the documentation site (`site-preview-heading`,
+  `site-banner`) — they belong to the docs site's own chrome, not the design
+  system, and mean nothing in a consumer's page.
+- Custom wrappers that shadow a real component element (`demo-modal-header`
+  where `usa-modal__main` exists) — remove them and use the real element.
+- Invented classes in the design-system namespace (`usa-chart-container`) —
+  permitted only with `discovery.origin: "extension"` and a limitation note.
+
+The test: *if an agent copies this markup, does every class either do
+something or say why it is there?* If not, the tile is not finished.
+
 **Authoring rule (enforced by field testing):** site customizations and
 composition layout are expressed with **inline styles or core classes** —
 never with invented component-style classes (`fr-*`, `usa-*`, `govuk-*`, [design-decision]
