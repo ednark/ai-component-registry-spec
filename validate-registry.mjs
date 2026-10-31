@@ -91,6 +91,31 @@ const CLASS_PREFIXES = (() => {
   return Array.isArray(p) ? p : [p]; // string form still accepted
 })();
 
+/**
+ * Extract (tag, classes) for every opening tag carrying a class attribute.
+ * Shared by the class-existence gate, the preserve/prose lint, the behavior
+ * selector checks and the ARIA cross-reference check, so all of them agree on
+ * what "applied markup" is (scripts/styles excluded by the caller).
+ */
+function tokenizeMarkup(html) {
+  const out = [];
+  const re = /<([a-zA-Z][\w-]*)\s([^>]*)>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const tag = m[1].toLowerCase();
+    const attrs = m[2];
+    if (/^\/\s*$/.test(attrs)) continue;
+    const cm = attrs.match(/class\s*=\s*"([^"]*)"/);
+    if (!cm) continue;
+    const classes = cm[1].split(/\s+/).filter(Boolean);
+    if (classes.length) out.push({ tag, classes });
+  }
+  return out;
+}
+
+// tagContract: class -> Set(tag), harvested from the package's own templates.
+const tagContract = new Map();
+
 // Enrich ground truth from the design-system package itself when one is
 // installed: behavior hooks and JS mounts (e.g. usa-character-count__field)
 // are official markup with no stylesheet rule of their own. Ported from the
@@ -124,6 +149,16 @@ if (classCheck?.package && definedClasses) {
       }
       for (const [, value] of source.matchAll(/class="([^"]*)"/g)) {
         value.split(/\s+/).filter((cls) => /^[\w:-]+$/.test(cls)).forEach((cls) => definedClasses.add(cls));
+      }
+      // Record the ELEMENT each class is demonstrated on (element contract,
+      // §D). Only the tag-adjacent form counts: `<button class="usa-x">` proves
+      // `button.usa-x`; a bare `.usa-x` selector in JS proves nothing about tags.
+      for (const { tag, classes } of tokenizeMarkup(source)) {
+        for (const c of classes) {
+          if (!CLASS_PREFIXES.some((p) => c.startsWith(p))) continue;
+          if (!tagContract.has(c)) tagContract.set(c, new Set());
+          tagContract.get(c).add(tag);
+        }
       }
       // Class-name literals in templates and component JS: any prefixed token
       // in package source IS official markup, even if the stylesheet never
@@ -260,6 +295,22 @@ for (const file of tileFiles) {
     for (const c of proseTokens) {
       if (definedClasses.has(c) || classAllow.has(c)) continue;
       error(`${relPath}: prose cites class "${c}" which is not defined by the design system and not allowlisted`);
+    }
+
+    // Tag contracts (§D): design-system CSS and JS frequently depend on the
+    // ELEMENT a class sits on, not just the class name — e.g. USWDS selects
+    // `button.usa-accordion__button[aria-controls]`, so the class on a `<p>`
+    // silently produces an inert toggle (the banner/default defect class).
+    // A mismatch may also be a legitimate semantic choice, and the demo
+    // templates under-determine the legal tag set (they show one usage each) —
+    // so this is warning-level: triage, then fix the tile or record the
+    // divergence in `provenance`.
+    for (const { tag, classes } of tokenizeMarkup(domHtml)) {
+      for (const c of classes) {
+        const allowed = tagContract.get(c);
+        if (!allowed || allowed.has(tag)) continue;
+        warn(`${relPath}: class "${c}" is applied to <${tag}>, but the design system uses it on <${[...allowed].sort().join(' | ')}> — verify the element, or record the divergence in provenance`);
+      }
     }
   }
 
