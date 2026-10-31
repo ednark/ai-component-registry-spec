@@ -332,6 +332,25 @@ for (const file of tileFiles) {
   const domIds = new Set();
   for (const m of domHtml.matchAll(/\sid="([^"]+)"/g)) domIds.add(m[1]);
 
+  // Claimed-class presence (§D): a tile declares its primary class in
+  // discovery.uswdsClass / uswdClass, and that declaration is what agents
+  // filter on. If the body does not actually contain it, the tile is claiming
+  // a component it does not ship — the failure mode that let breadcrumb ship
+  // without usa-breadcrumb and modal/lg ship without usa-modal--lg.
+  // This needs no ground truth: it compares the tile's claim to its own body,
+  // so it also applies to registries without staticView.
+  {
+    const claims = [
+      ...String(meta.discovery?.uswdsClass ?? '').split(/\s+/),
+      ...String(meta.discovery?.uswdClass ?? '').split(/\s+/),
+    ].filter((c) => c && c.startsWith('usa-'));
+    for (const c of new Set(claims)) {
+      if (!domClasses.has(c)) {
+        error(`${relPath}: discovery declares class "${c}" but the tile body never applies it — the tile claims a component it does not ship`);
+      }
+    }
+  }
+
   // Class ground truth: DOM classes must exist in the design-system stylesheet.
   if (definedClasses) {
     const domOnly = domHtml;
